@@ -1,6 +1,6 @@
-# Pravega Gateway
+# Pravega GRPC Gateway
 
-This is a GRPC server that provides a gateway to a Pravega server.
+This is a sample GRPC server that provides a gateway to Pravega.
 It provides **limited** Pravega functionality to any environment that support GRPC, including Python.
 
 Using a GRPC gateway is better than a REST gateway for the following reasons:
@@ -24,7 +24,17 @@ export PRAVEGA_CONTROLLER=tcp://localhost:9090
 
 # Run Gateway in Kubernetes
 
-See [Deploying to Nautilus](../README.md#deploying-to-nautilus). 
+Place pravega-keycloak-credentials-*-shadow.jar in the lib directory.
+
+If your network requires non-standard TLS certificates to be trusted during the build process, 
+place them in the ca-certificates directory.
+
+```
+export DOCKER_REPOSITORY=<hostname>:<port>/<namespace>
+export IMAGE_TAG=0.3.0
+scripts/build-k8s-components.sh
+scripts/deploy-k8s-components.sh
+```
 
 # Rebuild Python GRPC Stub for Pravega Gateway
 
