@@ -1,0 +1,15 @@
+*.iml
+.attach_pid*
+.gradle/
+.idea/
+.ipynb_checkpoints/
+*.log
+.nfs*
+ca-certificates/
+!ca-certificates/README.txt
+lib/
+!lib/README.txt
+out/
+pravega-gateway/build
+pravega-gateway/env
+pravega-gateway/src/main/python/pravega.egg-info

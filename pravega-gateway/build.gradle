@@ -1,0 +1,73 @@
+plugins {
+    // Provide convenience executables for trying out the examples.
+    id 'application'
+    // ASSUMES GRADLE 2.12 OR HIGHER. Use plugin version 0.7.5 with earlier gradle versions
+    id 'com.google.protobuf' version '0.8.8'
+    // Generate IntelliJ IDEA's .idea & .iml project files
+    id 'idea'
+}
+
+repositories {
+    maven { // The google mirror is less flaky than mavenCentral()
+        url "https://maven-central.storage-download.googleapis.com/repos/central/data/"
+    }
+    mavenLocal()
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+mainClassName = "io.pravega.example.pravega_gateway.PravegaGateway"
+archivesBaseName = "pravega-gateway"
+
+ext {
+    junitVersion = '4.12'
+    commonsCLIVersion = '1.4'
+}
+
+dependencies {
+    compile "org.slf4j:slf4j-api:1.7.13"
+    compile "ch.qos.logback:logback-classic:1.2.3"
+    compile "ch.qos.logback:logback-core:1.2.3"
+    compile "net.logstash.logback:logstash-logback-encoder:4.11"
+
+    testImplementation group: 'junit', name :'junit', version: junitVersion
+
+    compile "io.pravega:pravega-client:${pravegaVersion}",
+            "io.pravega:pravega-common:${pravegaVersion}",
+            "commons-cli:commons-cli:${commonsCLIVersion}"
+
+    if (includePravegaCredentials.toBoolean()) {
+        compile "io.pravega:pravega-keycloak-credentials:${pravegaCredentialsVersion}"
+    }
+
+    compile group: 'io.netty', name: 'netty-all', version: nettyVersion
+    compile "io.grpc:grpc-netty:" + grpcVersion
+    compile "io.grpc:grpc-auth:" + grpcVersion
+    compile "io.grpc:grpc-protobuf:" + grpcVersion
+    compile "io.grpc:grpc-stub:" + grpcVersion
+    compile group: 'io.netty', name: 'netty-tcnative-boringssl-static', version: nettyBoringSSLVersion
+}
+
+protobuf {
+    protoc { artifact = "com.google.protobuf:protoc:${protobufProtocVersion}" }
+    plugins {
+        grpc { artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}" }
+    }
+    generateProtoTasks {
+        all().each { task ->
+            task.plugins {
+                grpc {}
+            }
+        }
+    }
+}
+
+// Inform IDEs like IntelliJ IDEA, Eclipse or NetBeans about the generated code.
+sourceSets {
+    main {
+        java {
+            srcDirs 'build/generated/source/proto/main/grpc'
+            srcDirs 'build/generated/source/proto/main/java'
+        }
+    }
+}

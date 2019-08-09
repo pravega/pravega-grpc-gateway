@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pravega-gateway
+  labels:
+    app: nautilus-iiot-demo
+    component: pravega-gateway
+    release: {{ .Release.Name }}
+spec:
+  selector:
+    matchLabels:
+      app: nautilus-iiot-demo
+      component: pravega-gateway
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: nautilus-iiot-demo
+        component: pravega-gateway
+        release: {{ .Release.Name }}
+    spec:
+      serviceAccount: {{ .Release.Namespace }}-pravega
+      containers:
+        - name: main
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+              name: http
+          env:
+            - name: PRAVEGA_CONTROLLER
+              value: "{{ .Values.pravega.controller }}"
+            - name: JAVA_OPTS
+              value: "-XshowSettings:vm -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -XX:MaxRAMFraction=1"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "2000m"

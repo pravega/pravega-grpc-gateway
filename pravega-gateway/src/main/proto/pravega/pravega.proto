@@ -1,0 +1,125 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "io.pravega.example.pravega_gateway";
+
+service PravegaGateway {
+  rpc CreateScope(CreateScopeRequest) returns (CreateScopeResponse) {}
+  rpc CreateStream(CreateStreamRequest) returns (CreateStreamResponse) {}
+  rpc UpdateStream(UpdateStreamRequest) returns (UpdateStreamResponse) {}
+  rpc ReadEvents(ReadEventsRequest) returns (stream ReadEventsResponse) {}
+  rpc WriteEvents(stream WriteEventsRequest) returns (WriteEventsResponse) {}
+  rpc GetStreamInfo(GetStreamInfoRequest) returns (GetStreamInfoResponse) {}
+  rpc BatchReadEvents(BatchReadEventsRequest) returns (stream BatchReadEventsResponse) {}
+}
+
+message ScalingPolicy {
+  enum ScalingPolicyType {
+    FIXED_NUM_SEGMENTS = 0;
+    BY_RATE_IN_KBYTES_PER_SEC = 1;
+    BY_RATE_IN_EVENTS_PER_SEC = 2;
+  }
+  ScalingPolicyType scaleType = 1;
+  int32 target_rate = 2;
+  int32 scale_factor = 3;
+  int32 min_num_segments = 4;
+}
+
+message CreateScopeRequest {
+  string scope = 1;
+}
+
+message CreateScopeResponse {
+  bool created = 1;
+}
+
+message CreateStreamRequest {
+  string scope = 1;
+  string stream = 2;
+  ScalingPolicy scaling_policy = 3;
+}
+
+message CreateStreamResponse {
+  bool created = 1;
+}
+
+message UpdateStreamRequest {
+  string scope = 1;
+  string stream = 2;
+  ScalingPolicy scaling_policy = 3;
+}
+
+message UpdateStreamResponse {
+  bool updated = 1;
+}
+
+message ReadEventsRequest {
+  string scope = 1;
+  string stream = 2;
+  int64 timeout_ms = 3;
+}
+
+message ReadEventsResponse {
+  bytes event = 1;
+  string position = 2;
+  string event_pointer = 3;
+  // Empty string if this is not a checkpoint.
+  string checkpoint_name = 4;
+}
+
+// scope, stream, and use_transaction must be the same for all requests in the WriteEvents call.
+message WriteEventsRequest {
+  // The event to write. Events must be 1 MiB or less.
+  bytes event = 1;
+  // Optional.
+  string routing_key = 2;
+  // Must be set in the first request. For subsequent requests, must be the same value or the default (empty).
+  string scope = 3;
+  // Must be set in the first request. For subsequent requests, must be the same value or the default (empty).
+  string stream = 4;
+  // If true, all events will be written in a transaction and the transaction will be committed when the request
+  // is completed.
+  // If false, all events will be written without a transaction and the writer will be closed when the request
+  // is completed.
+  // Can be set in the first request. For subsequent requests, must be the same value or the default (false).
+  bool use_transaction = 5;
+  // If true, the open transaction will be flushed and committed after writing this event.
+  // A new transaction will be opened.
+  // This is ignored if use_transaction is false.
+  bool commit = 6;
+}
+
+message WriteEventsResponse {
+}
+
+message StreamCut {
+  map<int64, int64> cut = 1;
+  string text = 2;
+}
+
+message GetStreamInfoRequest {
+  string scope = 1;
+  string stream = 2;
+}
+
+message GetStreamInfoResponse {
+  // Beginning of stream
+  StreamCut head_stream_cut = 1;
+  // End of stream
+  StreamCut tail_stream_cut = 2;
+}
+
+message BatchReadEventsRequest {
+  string scope = 1;
+  string stream = 2;
+  // Beginning of stream
+  StreamCut from_stream_cut = 3;
+  // End of stream
+  StreamCut to_stream_cut = 4;
+}
+
+message BatchReadEventsResponse {
+  bytes event = 1;
+  int64 segment_id = 2;
+  int64 offset = 3;
+}

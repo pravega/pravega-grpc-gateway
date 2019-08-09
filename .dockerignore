@@ -1,0 +1,8 @@
+.git
+.gradle
+.idea
+charts
+env
+gradle
+pravega-gateway/build
+pravega-gateway/env

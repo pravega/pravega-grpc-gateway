@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: pravega-gateway
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app: nautilus-iiot-demo
+    component: pravega-gateway
+    release: {{ .Release.Name }}
+  type: NodePort

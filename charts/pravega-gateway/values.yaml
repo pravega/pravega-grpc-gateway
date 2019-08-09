@@ -1,0 +1,6 @@
+image:
+  repository: pravega-gateway
+  tag: 0.3.0
+
+pravega:
+  controller: "tcp://nautilus-pravega-controller.nautilus-pravega.svc.cluster.local:9090"
