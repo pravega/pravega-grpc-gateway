@@ -46,6 +46,7 @@ This will build the Python files necessary to allow a Python application to call
 
 2. Create Conda environment.
     ```
+    cd pravega-gateway   
     ./create_conda_env.sh
     ```
 
@@ -57,6 +58,7 @@ This will build the Python files necessary to allow a Python application to call
 # Run Test and Sample Applications
 
 ```
+cd pravega-gateway
 conda activate ./env
 pip install -e src/main/python
 src/test/python/event_generator.py
