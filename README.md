@@ -22,6 +22,21 @@ export PRAVEGA_CONTROLLER=tcp://localhost:9090
 ../gradlew run
 ```
 
+# Run Gateway in Docker
+
+```
+export DOCKER_REPOSITORY=claudiofahey
+export IMAGE_TAG=0.4.0
+export PRAVEGA_CONTROLLER=tcp://localhost:9090
+scripts/build-k8s-components.sh
+docker run -d \
+  --restart always \
+  -e PRAVEGA_CONTROLLER \
+  -p 54672:80 \
+  --name pravega-gateway \
+  ${DOCKER_REPOSITORY}/pravega-gateway:${IMAGE_TAG}
+```
+
 # Run Gateway in Kubernetes
 
 Place pravega-keycloak-credentials-*-shadow.jar in the lib directory.
