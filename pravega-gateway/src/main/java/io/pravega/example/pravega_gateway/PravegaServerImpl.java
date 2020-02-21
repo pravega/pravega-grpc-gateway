@@ -87,8 +87,9 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
         final long timeoutMs = req.getTimeoutMs() == 0 ? DEFAULT_TIMEOUT_MS : req.getTimeoutMs();
 
         final String readerGroup = UUID.randomUUID().toString().replace("-", "");
+        final Stream stream = Stream.of(scope, streamName);
         final ReaderGroupConfig readerGroupConfig = ReaderGroupConfig.builder()
-                .stream(Stream.of(scope, streamName), fromStreamCut, toStreamCut)
+                .stream(stream, fromStreamCut, toStreamCut)
                 .build();
         try (ReaderGroupManager readerGroupManager = ReaderGroupManager.withScope(scope, controllerURI)) {
             readerGroupManager.createReaderGroup(readerGroup, readerGroupConfig);
@@ -99,6 +100,7 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
                      readerGroup,
                      new ByteBufferSerializer(),
                      ReaderConfig.builder().build())) {
+            final StreamCutBuilder streamCutBuilder = new StreamCutBuilder(stream);
             for (;;) {
                 try {
                     EventRead<ByteBuffer> event = reader.readNextEvent(timeoutMs);
@@ -109,10 +111,12 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
                         logger.fine("readEvents: response=" + response.toString());
                         responseObserver.onNext(response);
                     } else if (event.getEvent() != null) {
+                        streamCutBuilder.addEvent(event.getPosition());
                         ReadEventsResponse response = ReadEventsResponse.newBuilder()
                                 .setEvent(ByteString.copyFrom(event.getEvent()))
                                 .setPosition(event.getPosition().toString())
                                 .setEventPointer(event.getEventPointer().toString())
+                                .setStreamCut(StreamCut.newBuilder().setText(streamCutBuilder.getStreamCut().asText()))
                                 .build();
                         logger.fine("readEvents: response=" + response.toString());
                         responseObserver.onNext(response);

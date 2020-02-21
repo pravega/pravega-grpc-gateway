@@ -63,10 +63,14 @@ message ReadEventsRequest {
 
 message ReadEventsResponse {
   bytes event = 1;
+  // Identifies the event(s) immediately following this one.
   string position = 2;
+  // A pointer to this event.
   string event_pointer = 3;
   // Empty string if this is not a checkpoint.
   string checkpoint_name = 4;
+  // Identifies the event(s) immediately following this one.
+  StreamCut stream_cut = 5;
 }
 
 // scope, stream, and use_transaction must be the same for all requests in the WriteEvents call.
@@ -95,6 +99,7 @@ message WriteEventsResponse {
 }
 
 message StreamCut {
+  // For debug use only.
   map<int64, int64> cut = 1;
   string text = 2;
 }

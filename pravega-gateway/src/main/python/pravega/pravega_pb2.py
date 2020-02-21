@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='',
   syntax='proto3',
   serialized_options=_b('\n\"io.pravega.example.pravega_gatewayP\001'),
-  serialized_pb=_b('\n\x15pravega/pravega.proto\"\xf4\x01\n\rScalingPolicy\x12\x33\n\tscaleType\x18\x01 \x01(\x0e\x32 .ScalingPolicy.ScalingPolicyType\x12\x13\n\x0btarget_rate\x18\x02 \x01(\x05\x12\x14\n\x0cscale_factor\x18\x03 \x01(\x05\x12\x18\n\x10min_num_segments\x18\x04 \x01(\x05\"i\n\x11ScalingPolicyType\x12\x16\n\x12\x46IXED_NUM_SEGMENTS\x10\x00\x12\x1d\n\x19\x42Y_RATE_IN_KBYTES_PER_SEC\x10\x01\x12\x1d\n\x19\x42Y_RATE_IN_EVENTS_PER_SEC\x10\x02\"#\n\x12\x43reateScopeRequest\x12\r\n\x05scope\x18\x01 \x01(\t\"&\n\x13\x43reateScopeResponse\x12\x0f\n\x07\x63reated\x18\x01 \x01(\x08\"\\\n\x13\x43reateStreamRequest\x12\r\n\x05scope\x18\x01 \x01(\t\x12\x0e\n\x06stream\x18\x02 \x01(\t\x12&\n\x0escaling_policy\x18\x03 \x01(\x0b\x32\x0e.ScalingPolicy\"\'\n\x14\x43reateStreamResponse\x12\x0f\n\x07\x63reated\x18\x01 \x01(\x08\"\\\n\x13UpdateStreamRequest\x12\r\n\x05scope\x18\x01 \x01(\t\x12\x0e\n\x06stream\x18\x02 \x01(\t\x12&\n\x0escaling_policy\x18\x03 \x01(\x0b\x32\x0e.ScalingPolicy\"\'\n\x14UpdateStreamResponse\x12\x0f\n\x07updated\x18\x01 \x01(\x08\"F\n\x11ReadEventsRequest\x12\r\n\x05scope\x18\x01 \x01(\t\x12\x0e\n\x06stream\x18\x02 \x01(\t\x12\x12\n\ntimeout_ms\x18\x03 \x01(\x03\"e\n\x12ReadEventsResponse\x12\r\n\x05\x65vent\x18\x01 \x01(\x0c\x12\x10\n\x08position\x18\x02 \x01(\t\x12\x15\n\revent_pointer\x18\x03 \x01(\t\x12\x17\n\x0f\x63heckpoint_name\x18\x04 \x01(\t\"\x80\x01\n\x12WriteEventsRequest\x12\r\n\x05\x65vent\x18\x01 \x01(\x0c\x12\x13\n\x0brouting_key\x18\x02 \x01(\t\x12\r\n\x05scope\x18\x03 \x01(\t\x12\x0e\n\x06stream\x18\x04 \x01(\t\x12\x17\n\x0fuse_transaction\x18\x05 \x01(\x08\x12\x0e\n\x06\x63ommit\x18\x06 \x01(\x08\"\x15\n\x13WriteEventsResponse\"g\n\tStreamCut\x12 \n\x03\x63ut\x18\x01 \x03(\x0b\x32\x13.StreamCut.CutEntry\x12\x0c\n\x04text\x18\x02 \x01(\t\x1a*\n\x08\x43utEntry\x12\x0b\n\x03key\x18\x01 \x01(\x03\x12\r\n\x05value\x18\x02 \x01(\x03:\x02\x38\x01\"5\n\x14GetStreamInfoRequest\x12\r\n\x05scope\x18\x01 \x01(\t\x12\x0e\n\x06stream\x18\x02 \x01(\t\"a\n\x15GetStreamInfoResponse\x12#\n\x0fhead_stream_cut\x18\x01 \x01(\x0b\x32\n.StreamCut\x12#\n\x0ftail_stream_cut\x18\x02 \x01(\x0b\x32\n.StreamCut\"\x7f\n\x16\x42\x61tchReadEventsRequest\x12\r\n\x05scope\x18\x01 \x01(\t\x12\x0e\n\x06stream\x18\x02 \x01(\t\x12#\n\x0f\x66rom_stream_cut\x18\x03 \x01(\x0b\x32\n.StreamCut\x12!\n\rto_stream_cut\x18\x04 \x01(\x0b\x32\n.StreamCut\"L\n\x17\x42\x61tchReadEventsResponse\x12\r\n\x05\x65vent\x18\x01 \x01(\x0c\x12\x12\n\nsegment_id\x18\x02 \x01(\x03\x12\x0e\n\x06offset\x18\x03 \x01(\x03\x32\xcf\x03\n\x0ePravegaGateway\x12:\n\x0b\x43reateScope\x12\x13.CreateScopeRequest\x1a\x14.CreateScopeResponse\"\x00\x12=\n\x0c\x43reateStream\x12\x14.CreateStreamRequest\x1a\x15.CreateStreamResponse\"\x00\x12=\n\x0cUpdateStream\x12\x14.UpdateStreamRequest\x1a\x15.UpdateStreamResponse\"\x00\x12\x39\n\nReadEvents\x12\x12.ReadEventsRequest\x1a\x13.ReadEventsResponse\"\x00\x30\x01\x12<\n\x0bWriteEvents\x12\x13.WriteEventsRequest\x1a\x14.WriteEventsResponse\"\x00(\x01\x12@\n\rGetStreamInfo\x12\x15.GetStreamInfoRequest\x1a\x16.GetStreamInfoResponse\"\x00\x12H\n\x0f\x42\x61tchReadEvents\x12\x17.BatchReadEventsRequest\x1a\x18.BatchReadEventsResponse\"\x00\x30\x01\x42&\n\"io.pravega.example.pravega_gatewayP\x01\x62\x06proto3')
+  serialized_pb=_b('\n\x15pravega/pravega.proto\"\xf4\x01\n\rScalingPolicy\x12\x33\n\tscaleType\x18\x01 \x01(\x0e\x32 .ScalingPolicy.ScalingPolicyType\x12\x13\n\x0btarget_rate\x18\x02 \x01(\x05\x12\x14\n\x0cscale_factor\x18\x03 \x01(\x05\x12\x18\n\x10min_num_segments\x18\x04 \x01(\x05\"i\n\x11ScalingPolicyType\x12\x16\n\x12\x46IXED_NUM_SEGMENTS\x10\x00\x12\x1d\n\x19\x42Y_RATE_IN_KBYTES_PER_SEC\x10\x01\x12\x1d\n\x19\x42Y_RATE_IN_EVENTS_PER_SEC\x10\x02\"#\n\x12\x43reateScopeRequest\x12\r\n\x05scope\x18\x01 \x01(\t\"&\n\x13\x43reateScopeResponse\x12\x0f\n\x07\x63reated\x18\x01 \x01(\x08\"\\\n\x13\x43reateStreamRequest\x12\r\n\x05scope\x18\x01 \x01(\t\x12\x0e\n\x06stream\x18\x02 \x01(\t\x12&\n\x0escaling_policy\x18\x03 \x01(\x0b\x32\x0e.ScalingPolicy\"\'\n\x14\x43reateStreamResponse\x12\x0f\n\x07\x63reated\x18\x01 \x01(\x08\"\\\n\x13UpdateStreamRequest\x12\r\n\x05scope\x18\x01 \x01(\t\x12\x0e\n\x06stream\x18\x02 \x01(\t\x12&\n\x0escaling_policy\x18\x03 \x01(\x0b\x32\x0e.ScalingPolicy\"\'\n\x14UpdateStreamResponse\x12\x0f\n\x07updated\x18\x01 \x01(\x08\"\x8e\x01\n\x11ReadEventsRequest\x12\r\n\x05scope\x18\x01 \x01(\t\x12\x0e\n\x06stream\x18\x02 \x01(\t\x12\x12\n\ntimeout_ms\x18\x03 \x01(\x03\x12#\n\x0f\x66rom_stream_cut\x18\x04 \x01(\x0b\x32\n.StreamCut\x12!\n\rto_stream_cut\x18\x05 \x01(\x0b\x32\n.StreamCut\"\x85\x01\n\x12ReadEventsResponse\x12\r\n\x05\x65vent\x18\x01 \x01(\x0c\x12\x10\n\x08position\x18\x02 \x01(\t\x12\x15\n\revent_pointer\x18\x03 \x01(\t\x12\x17\n\x0f\x63heckpoint_name\x18\x04 \x01(\t\x12\x1e\n\nstream_cut\x18\x05 \x01(\x0b\x32\n.StreamCut\"\x80\x01\n\x12WriteEventsRequest\x12\r\n\x05\x65vent\x18\x01 \x01(\x0c\x12\x13\n\x0brouting_key\x18\x02 \x01(\t\x12\r\n\x05scope\x18\x03 \x01(\t\x12\x0e\n\x06stream\x18\x04 \x01(\t\x12\x17\n\x0fuse_transaction\x18\x05 \x01(\x08\x12\x0e\n\x06\x63ommit\x18\x06 \x01(\x08\"\x15\n\x13WriteEventsResponse\"g\n\tStreamCut\x12 \n\x03\x63ut\x18\x01 \x03(\x0b\x32\x13.StreamCut.CutEntry\x12\x0c\n\x04text\x18\x02 \x01(\t\x1a*\n\x08\x43utEntry\x12\x0b\n\x03key\x18\x01 \x01(\x03\x12\r\n\x05value\x18\x02 \x01(\x03:\x02\x38\x01\"5\n\x14GetStreamInfoRequest\x12\r\n\x05scope\x18\x01 \x01(\t\x12\x0e\n\x06stream\x18\x02 \x01(\t\"a\n\x15GetStreamInfoResponse\x12#\n\x0fhead_stream_cut\x18\x01 \x01(\x0b\x32\n.StreamCut\x12#\n\x0ftail_stream_cut\x18\x02 \x01(\x0b\x32\n.StreamCut\"\x7f\n\x16\x42\x61tchReadEventsRequest\x12\r\n\x05scope\x18\x01 \x01(\t\x12\x0e\n\x06stream\x18\x02 \x01(\t\x12#\n\x0f\x66rom_stream_cut\x18\x03 \x01(\x0b\x32\n.StreamCut\x12!\n\rto_stream_cut\x18\x04 \x01(\x0b\x32\n.StreamCut\"L\n\x17\x42\x61tchReadEventsResponse\x12\r\n\x05\x65vent\x18\x01 \x01(\x0c\x12\x12\n\nsegment_id\x18\x02 \x01(\x03\x12\x0e\n\x06offset\x18\x03 \x01(\x03\x32\xcf\x03\n\x0ePravegaGateway\x12:\n\x0b\x43reateScope\x12\x13.CreateScopeRequest\x1a\x14.CreateScopeResponse\"\x00\x12=\n\x0c\x43reateStream\x12\x14.CreateStreamRequest\x1a\x15.CreateStreamResponse\"\x00\x12=\n\x0cUpdateStream\x12\x14.UpdateStreamRequest\x1a\x15.UpdateStreamResponse\"\x00\x12\x39\n\nReadEvents\x12\x12.ReadEventsRequest\x1a\x13.ReadEventsResponse\"\x00\x30\x01\x12<\n\x0bWriteEvents\x12\x13.WriteEventsRequest\x1a\x14.WriteEventsResponse\"\x00(\x01\x12@\n\rGetStreamInfo\x12\x15.GetStreamInfoRequest\x1a\x16.GetStreamInfoResponse\"\x00\x12H\n\x0f\x42\x61tchReadEvents\x12\x17.BatchReadEventsRequest\x1a\x18.BatchReadEventsResponse\"\x00\x30\x01\x42&\n\"io.pravega.example.pravega_gatewayP\x01\x62\x06proto3')
 )
 
 
@@ -346,6 +346,20 @@ _READEVENTSREQUEST = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='from_stream_cut', full_name='ReadEventsRequest.from_stream_cut', index=3,
+      number=4, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='to_stream_cut', full_name='ReadEventsRequest.to_stream_cut', index=4,
+      number=5, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -358,8 +372,8 @@ _READEVENTSREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=619,
-  serialized_end=689,
+  serialized_start=620,
+  serialized_end=762,
 )
 
 
@@ -398,6 +412,13 @@ _READEVENTSRESPONSE = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='stream_cut', full_name='ReadEventsResponse.stream_cut', index=4,
+      number=5, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -410,8 +431,8 @@ _READEVENTSRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=691,
-  serialized_end=792,
+  serialized_start=765,
+  serialized_end=898,
 )
 
 
@@ -476,8 +497,8 @@ _WRITEEVENTSREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=795,
-  serialized_end=923,
+  serialized_start=901,
+  serialized_end=1029,
 )
 
 
@@ -500,8 +521,8 @@ _WRITEEVENTSRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=925,
-  serialized_end=946,
+  serialized_start=1031,
+  serialized_end=1052,
 )
 
 
@@ -538,8 +559,8 @@ _STREAMCUT_CUTENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1009,
-  serialized_end=1051,
+  serialized_start=1115,
+  serialized_end=1157,
 )
 
 _STREAMCUT = _descriptor.Descriptor(
@@ -575,8 +596,8 @@ _STREAMCUT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=948,
-  serialized_end=1051,
+  serialized_start=1054,
+  serialized_end=1157,
 )
 
 
@@ -613,8 +634,8 @@ _GETSTREAMINFOREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1053,
-  serialized_end=1106,
+  serialized_start=1159,
+  serialized_end=1212,
 )
 
 
@@ -651,8 +672,8 @@ _GETSTREAMINFORESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1108,
-  serialized_end=1205,
+  serialized_start=1214,
+  serialized_end=1311,
 )
 
 
@@ -703,8 +724,8 @@ _BATCHREADEVENTSREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1207,
-  serialized_end=1334,
+  serialized_start=1313,
+  serialized_end=1440,
 )
 
 
@@ -748,14 +769,17 @@ _BATCHREADEVENTSRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1336,
-  serialized_end=1412,
+  serialized_start=1442,
+  serialized_end=1518,
 )
 
 _SCALINGPOLICY.fields_by_name['scaleType'].enum_type = _SCALINGPOLICY_SCALINGPOLICYTYPE
 _SCALINGPOLICY_SCALINGPOLICYTYPE.containing_type = _SCALINGPOLICY
 _CREATESTREAMREQUEST.fields_by_name['scaling_policy'].message_type = _SCALINGPOLICY
 _UPDATESTREAMREQUEST.fields_by_name['scaling_policy'].message_type = _SCALINGPOLICY
+_READEVENTSREQUEST.fields_by_name['from_stream_cut'].message_type = _STREAMCUT
+_READEVENTSREQUEST.fields_by_name['to_stream_cut'].message_type = _STREAMCUT
+_READEVENTSRESPONSE.fields_by_name['stream_cut'].message_type = _STREAMCUT
 _STREAMCUT_CUTENTRY.containing_type = _STREAMCUT
 _STREAMCUT.fields_by_name['cut'].message_type = _STREAMCUT_CUTENTRY
 _GETSTREAMINFORESPONSE.fields_by_name['head_stream_cut'].message_type = _STREAMCUT
@@ -910,8 +934,8 @@ _PRAVEGAGATEWAY = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=1415,
-  serialized_end=1878,
+  serialized_start=1521,
+  serialized_end=1984,
   methods=[
   _descriptor.MethodDescriptor(
     name='CreateScope',
