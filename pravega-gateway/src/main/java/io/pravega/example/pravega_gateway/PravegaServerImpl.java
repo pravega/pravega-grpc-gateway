@@ -10,16 +10,23 @@ import io.pravega.client.admin.StreamInfo;
 import io.pravega.client.admin.StreamManager;
 import io.pravega.client.batch.BatchClient;
 import io.pravega.client.batch.SegmentIterator;
-import io.pravega.client.batch.SegmentRange;
 import io.pravega.client.segment.impl.Segment;
-import io.pravega.client.stream.*;
+import io.pravega.client.stream.EventRead;
+import io.pravega.client.stream.EventStreamReader;
+import io.pravega.client.stream.EventStreamWriter;
+import io.pravega.client.stream.EventWriterConfig;
+import io.pravega.client.stream.ReaderConfig;
+import io.pravega.client.stream.ReaderGroupConfig;
+import io.pravega.client.stream.ReinitializationRequiredException;
+import io.pravega.client.stream.Stream;
+import io.pravega.client.stream.StreamConfiguration;
+import io.pravega.client.stream.TxnFailedException;
 import io.pravega.client.stream.impl.ByteBufferSerializer;
 
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.UUID;
-import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -61,18 +68,27 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
         }
     }
 
+    private io.pravega.client.stream.StreamCut parseGrpcStreamCut(StreamCut grpcStreamCut) {
+        if (grpcStreamCut.getText().isEmpty()) {
+            return io.pravega.client.stream.StreamCut.UNBOUNDED;
+        } else {
+            return io.pravega.client.stream.StreamCut.from(grpcStreamCut.getText());
+        }
+    }
+
     @Override
     public void readEvents(ReadEventsRequest req, StreamObserver<ReadEventsResponse> responseObserver) {
         final URI controllerURI = Parameters.getControllerURI();
         final String scope = req.getScope();
         final String streamName = req.getStream();
-        // TODO: support bounded streams
-        final boolean haveEndStreamCut = false;
+        final io.pravega.client.stream.StreamCut fromStreamCut =  parseGrpcStreamCut(req.getFromStreamCut());
+        final io.pravega.client.stream.StreamCut toStreamCut =  parseGrpcStreamCut(req.getToStreamCut());
+        final boolean haveEndStreamCut = (toStreamCut != io.pravega.client.stream.StreamCut.UNBOUNDED);
         final long timeoutMs = req.getTimeoutMs() == 0 ? DEFAULT_TIMEOUT_MS : req.getTimeoutMs();
 
         final String readerGroup = UUID.randomUUID().toString().replace("-", "");
         final ReaderGroupConfig readerGroupConfig = ReaderGroupConfig.builder()
-                .stream(Stream.of(scope, streamName))
+                .stream(Stream.of(scope, streamName), fromStreamCut, toStreamCut)
                 .build();
         try (ReaderGroupManager readerGroupManager = ReaderGroupManager.withScope(scope, controllerURI)) {
             readerGroupManager.createReaderGroup(readerGroup, readerGroupConfig);

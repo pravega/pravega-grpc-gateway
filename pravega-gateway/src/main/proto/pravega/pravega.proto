@@ -57,6 +57,8 @@ message ReadEventsRequest {
   string scope = 1;
   string stream = 2;
   int64 timeout_ms = 3;
+  StreamCut from_stream_cut = 4;
+  StreamCut to_stream_cut = 5;
 }
 
 message ReadEventsResponse {
@@ -112,9 +114,7 @@ message GetStreamInfoResponse {
 message BatchReadEventsRequest {
   string scope = 1;
   string stream = 2;
-  // Beginning of stream
   StreamCut from_stream_cut = 3;
-  // End of stream
   StreamCut to_stream_cut = 4;
 }
 
