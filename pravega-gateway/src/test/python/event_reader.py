@@ -5,6 +5,7 @@ import grpc
 import pravega
 import base64
 import gzip
+import argparse
 
 
 def decode_stream_cut_text(text):
@@ -18,14 +19,8 @@ def decode_stream_cut_text(text):
     zipped = list(zip(zip(segment_numbers, epochs), offsets))
     positions = dict(zipped)
     return {
-        # 'text': text,
-        # 'split': split,
         'plaintext': plaintext,
         'stream': stream,
-        # 'segment_numbers': segment_numbers,
-        # 'epochs': epochs,
-        # 'offsets': offsets,
-        # 'zipped': zipped,
         'positions': positions,   # map from (segment_number, epoch) to offset
     }
 
@@ -49,33 +44,47 @@ def encode_stream_cut_text(stream_cut):
     return text
 
 
-def run():
-    with grpc.insecure_channel('localhost:54672') as pravega_channel:
+def main():
+    logging.basicConfig(level=logging.DEBUG)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--from_head_streamcut', action='store_true')
+    parser.add_argument('--gateway', default='localhost:54672')
+    parser.add_argument('--scope', default='examples')
+    parser.add_argument('--stream', default='stream2')
+    parser.add_argument('--to_tail_streamcut', action='store_true')
+    args = parser.parse_args()
+    logging.info('args=%s' % str(args))
+
+    with grpc.insecure_channel(args.gateway) as pravega_channel:
         pravega_client = pravega.grpc.PravegaGatewayStub(pravega_channel)
 
-        scope = 'examples'
-        stream = 'stream2'
+        stream_info = pravega_client.GetStreamInfo(pravega.pb.GetStreamInfoRequest(scope=args.scope, stream=args.stream))
+        logging.info('GetStreamInfo response=%s' % stream_info)
 
-        response = pravega_client.GetStreamInfo(pravega.pb.GetStreamInfoRequest(scope=scope, stream=stream))
-        logging.info('GetStreamInfo response=%s' % response)
-        stream_info = response
+        if args.from_head_streamcut:
+            decoded = decode_stream_cut_text(stream_info.tail_stream_cut.text)
+            logging.info(decoded)
+            encoded = encode_stream_cut_text(decoded)
+            logging.info(encoded)
+            from_stream_cut_decoded = decode_stream_cut_text(stream_info.head_stream_cut.text)
+            logging.info(from_stream_cut_decoded)
+            # from_stream_cut_decoded['positions'][(0,0)] += 1
+            from_stream_cut_encoded = encode_stream_cut_text(from_stream_cut_decoded)
+            logging.info(from_stream_cut_encoded)
+            from_stream_cut = pravega.pb.StreamCut(text=from_stream_cut_encoded)
+        else:
+            from_stream_cut = None
 
-        decoded = decode_stream_cut_text(stream_info.tail_stream_cut.text)
-        logging.info(decoded)
-        encoded = encode_stream_cut_text(decoded)
-        logging.info(encoded)
-
-        from_stream_cut_decoded = decode_stream_cut_text(stream_info.head_stream_cut.text)
-        logging.info(from_stream_cut_decoded)
-        # from_stream_cut_decoded['positions'][(0,0)] += 1
-        from_stream_cut = encode_stream_cut_text(from_stream_cut_decoded)
-        logging.info(from_stream_cut)
+        if args.to_tail_streamcut:
+            to_stream_cut = stream_info.tail_stream_cut
+        else:
+            to_stream_cut = None
 
         read_events_request = pravega.pb.ReadEventsRequest(
-            scope=scope,
-            stream=stream,
-            from_stream_cut=pravega.pb.StreamCut(text=from_stream_cut),
-            to_stream_cut=stream_info.tail_stream_cut,
+            scope=args.scope,
+            stream=args.stream,
+            from_stream_cut=from_stream_cut,
+            to_stream_cut=to_stream_cut,
         )
         logging.info('read_events_request=%s', read_events_request)
         for r in pravega_client.ReadEvents(read_events_request):
@@ -83,5 +92,4 @@ def run():
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
-    run()
+    main()

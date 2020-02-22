@@ -6,23 +6,51 @@ import time
 import grpc
 import pravega
 import random
+import argparse
 
 
-def run():
-    with grpc.insecure_channel('localhost:54672') as pravega_channel:
+def events_to_write_generator(args):
+    while True:
+        event_to_write = pravega.pb.WriteEventsRequest(
+            scope=args.scope,
+            stream=args.stream,
+            use_transaction=args.use_transaction,
+            event=str(datetime.datetime.now()).encode(encoding='UTF-8'),
+            routing_key=str(random.randint(0, 10)),
+        )
+        logging.info("event_to_write=%s", event_to_write)
+        yield event_to_write
+        event_to_write = pravega.pb.WriteEventsRequest(
+            commit=args.use_transaction,
+            event=str(datetime.datetime.now()).encode(encoding='UTF-8'),
+            routing_key=str(random.randint(0, 10)),
+        )
+        logging.info("event_to_write=%s", event_to_write)
+        yield event_to_write
+        time.sleep(1)
+
+
+def main():
+    logging.basicConfig(level=logging.DEBUG)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--gateway', default='localhost:54672')
+    parser.add_argument('--min_num_segments', default=3)
+    parser.add_argument('--scope', default='examples')
+    parser.add_argument('--stream', default='stream2')
+    parser.add_argument('--use_transaction', action='store_true')
+    args = parser.parse_args()
+    logging.info('args=%s' % str(args))
+
+    with grpc.insecure_channel(args.gateway) as pravega_channel:
         pravega_client = pravega.grpc.PravegaGatewayStub(pravega_channel)
 
-        scope = 'examples'
-        stream = 'stream2'
-        use_transaction = False
-
-        response = pravega_client.CreateScope(pravega.pb.CreateScopeRequest(scope=scope))
+        response = pravega_client.CreateScope(pravega.pb.CreateScopeRequest(scope=args.scope))
         logging.info('CreateScope response=%s' % response)
 
         response = pravega_client.CreateStream(pravega.pb.CreateStreamRequest(
-            scope=scope,
-            stream=stream,
-            scaling_policy=pravega.pb.ScalingPolicy(min_num_segments=3),
+            scope=args.scope,
+            stream=args.stream,
+            scaling_policy=pravega.pb.ScalingPolicy(min_num_segments=args.min_num_segments),
         ))
         logging.info('CreateStream response=%s' % response)
 
@@ -33,26 +61,9 @@ def run():
         # ))
         # logging.info('UpdateStream response=%s' % response)
 
-        while True:
-            events_to_write = [
-                pravega.pb.WriteEventsRequest(
-                    scope=scope,
-                    stream=stream,
-                    use_transaction=use_transaction,
-                    event=str(datetime.datetime.now()).encode(encoding='UTF-8'),
-                    routing_key=str(random.randint(0, 10)),
-                ),
-                pravega.pb.WriteEventsRequest(
-                    event=str(datetime.datetime.now()).encode(encoding='UTF-8'),
-                    routing_key=str(random.randint(0, 10)),
-                ),
-                ]
-            logging.info("events_to_write=%s", events_to_write);
-            write_response = pravega_client.WriteEvents(iter(events_to_write))
-            logging.info("write_response=" + str(write_response))
-            time.sleep(1)
+        write_response = pravega_client.WriteEvents(events_to_write_generator(args))
+        logging.info("write_response=" + str(write_response))
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
-    run()
+    main()
