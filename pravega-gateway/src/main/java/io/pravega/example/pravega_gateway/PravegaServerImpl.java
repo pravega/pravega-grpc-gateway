@@ -4,26 +4,17 @@ import com.google.protobuf.ByteString;
 import io.grpc.Context;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
-import io.pravega.client.ClientFactory;
+import io.pravega.client.BatchClientFactory;
+import io.pravega.client.ClientConfig;
+import io.pravega.client.EventStreamClientFactory;
 import io.pravega.client.admin.ReaderGroupManager;
 import io.pravega.client.admin.StreamInfo;
 import io.pravega.client.admin.StreamManager;
-import io.pravega.client.batch.BatchClient;
 import io.pravega.client.batch.SegmentIterator;
 import io.pravega.client.segment.impl.Segment;
-import io.pravega.client.stream.EventRead;
-import io.pravega.client.stream.EventStreamReader;
-import io.pravega.client.stream.EventStreamWriter;
-import io.pravega.client.stream.EventWriterConfig;
-import io.pravega.client.stream.ReaderConfig;
-import io.pravega.client.stream.ReaderGroupConfig;
-import io.pravega.client.stream.ReinitializationRequiredException;
-import io.pravega.client.stream.Stream;
-import io.pravega.client.stream.StreamConfiguration;
-import io.pravega.client.stream.TxnFailedException;
+import io.pravega.client.stream.*;
 import io.pravega.client.stream.impl.ByteBufferSerializer;
 
-import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.UUID;
@@ -34,9 +25,15 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
     private static final Logger logger = Logger.getLogger(PravegaGateway.class.getName());
     static final long DEFAULT_TIMEOUT_MS = 1000;
 
+    private final ClientConfig clientConfig;
+
+    PravegaServerImpl() {
+        clientConfig = ClientConfig.builder().controllerURI(Parameters.getControllerURI()).build();
+    }
+
     @Override
     public void createScope(CreateScopeRequest req, StreamObserver<CreateScopeResponse> responseObserver) {
-        try (StreamManager streamManager = StreamManager.create(Parameters.getControllerURI())) {
+        try (StreamManager streamManager = StreamManager.create(clientConfig)) {
             boolean created = streamManager.createScope(req.getScope());
             responseObserver.onNext(CreateScopeResponse.newBuilder().setCreated(created).build());
             responseObserver.onCompleted();
@@ -45,7 +42,7 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
 
     @Override
     public void createStream(CreateStreamRequest req, StreamObserver<CreateStreamResponse> responseObserver) {
-        try (StreamManager streamManager = StreamManager.create(Parameters.getControllerURI())) {
+        try (StreamManager streamManager = StreamManager.create(clientConfig)) {
             final int minNumSegments = Integer.max(1, req.getScalingPolicy().getMinNumSegments());
             StreamConfiguration streamConfig = StreamConfiguration.builder()
                     .scalingPolicy(io.pravega.client.stream.ScalingPolicy.fixed(minNumSegments))
@@ -58,7 +55,7 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
 
     @Override
     public void updateStream(UpdateStreamRequest req, StreamObserver<UpdateStreamResponse> responseObserver) {
-        try (StreamManager streamManager = StreamManager.create(Parameters.getControllerURI())) {
+        try (StreamManager streamManager = StreamManager.create(clientConfig)) {
             StreamConfiguration streamConfig = StreamConfiguration.builder()
                     .scalingPolicy(io.pravega.client.stream.ScalingPolicy.fixed(req.getScalingPolicy().getMinNumSegments()))
                     .build();
@@ -78,7 +75,6 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
 
     @Override
     public void readEvents(ReadEventsRequest req, StreamObserver<ReadEventsResponse> responseObserver) {
-        final URI controllerURI = Parameters.getControllerURI();
         final String scope = req.getScope();
         final String streamName = req.getStream();
         final io.pravega.client.stream.StreamCut fromStreamCut =  parseGrpcStreamCut(req.getFromStreamCut());
@@ -91,12 +87,14 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
         final ReaderGroupConfig readerGroupConfig = ReaderGroupConfig.builder()
                 .stream(stream, fromStreamCut, toStreamCut)
                 .build();
-        try (ReaderGroupManager readerGroupManager = ReaderGroupManager.withScope(scope, controllerURI)) {
+        try (ReaderGroupManager readerGroupManager = ReaderGroupManager.withScope(scope, clientConfig)) {
             readerGroupManager.createReaderGroup(readerGroup, readerGroupConfig);
         }
 
-        try (ClientFactory clientFactory = ClientFactory.withScope(scope, controllerURI);
-             EventStreamReader<ByteBuffer> reader = clientFactory.createReader("reader",
+        final String readerId = UUID.randomUUID().toString();
+        try (EventStreamClientFactory clientFactory = EventStreamClientFactory.withScope(scope, clientConfig);
+             EventStreamReader<ByteBuffer> reader = clientFactory.createReader(
+                     readerId,
                      readerGroup,
                      new ByteBufferSerializer(),
                      ReaderConfig.builder().build())) {
@@ -152,28 +150,33 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
     @Override
     public StreamObserver<WriteEventsRequest> writeEvents(StreamObserver<WriteEventsResponse> responseObserver) {
         return new StreamObserver<WriteEventsRequest>() {
-            ClientFactory clientFactory;
+            EventStreamClientFactory clientFactory;
             AbstractEventWriter<ByteBuffer> writer;
             String scope;
             String streamName;
             Boolean useTransaction;
+            final String writerId = UUID.randomUUID().toString();
 
             @Override
             public void onNext(WriteEventsRequest req) {
                 logger.fine("writeEvents: req=" + req.toString());
                 if (writer == null) {
-                    final URI controllerURI = Parameters.getControllerURI();
                     scope = req.getScope();
                     streamName = req.getStream();
                     useTransaction = req.getUseTransaction();
-                    clientFactory = ClientFactory.withScope(scope, controllerURI);
-                    EventStreamWriter<ByteBuffer> pravegaWriter = clientFactory.createEventWriter(
-                            streamName,
-                            new ByteBufferSerializer(),
-                            EventWriterConfig.builder().build());
+                    clientFactory = EventStreamClientFactory.withScope(scope, clientConfig);
                     if (useTransaction) {
+                        TransactionalEventStreamWriter<ByteBuffer> pravegaWriter = clientFactory.createTransactionalEventWriter(
+                                writerId,
+                                streamName,
+                                new ByteBufferSerializer(),
+                                EventWriterConfig.builder().build());
                         writer = new TransactionalEventWriter<>(pravegaWriter);
                     } else {
+                        EventStreamWriter<ByteBuffer> pravegaWriter = clientFactory.createEventWriter(
+                                streamName,
+                                new ByteBufferSerializer(),
+                                EventWriterConfig.builder().build());
                         writer = new NonTransactionalEventWriter<>(pravegaWriter);
                     }
                     writer.open();
@@ -262,7 +265,7 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
 
     @Override
     public void getStreamInfo(GetStreamInfoRequest req, StreamObserver<GetStreamInfoResponse> responseObserver) {
-        try (StreamManager streamManager = StreamManager.create(Parameters.getControllerURI())) {
+        try (StreamManager streamManager = StreamManager.create(clientConfig)) {
             StreamInfo streamInfo = streamManager.getStreamInfo(req.getScope(), req.getStream());
             StreamCut.Builder headStreamCutBuilder = StreamCut.newBuilder()
                     .setText(streamInfo.getHeadStreamCut().asText());
@@ -285,14 +288,12 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
 
     @Override
     public void batchReadEvents(BatchReadEventsRequest req, StreamObserver<BatchReadEventsResponse> responseObserver) {
-        final URI controllerURI = Parameters.getControllerURI();
         final String scope = req.getScope();
         final String streamName = req.getStream();
         io.pravega.client.stream.StreamCut fromStreamCut = io.pravega.client.stream.StreamCut.from(req.getFromStreamCut().getText());
         io.pravega.client.stream.StreamCut toStreamCut = io.pravega.client.stream.StreamCut.from(req.getToStreamCut().getText());
 
-        try (ClientFactory clientFactory = ClientFactory.withScope(scope, controllerURI)) {
-            BatchClient batchClient = clientFactory.createBatchClient();
+        try (BatchClientFactory batchClient = BatchClientFactory.withScope(scope, clientConfig)) {
             batchClient.getSegments(Stream.of(scope, streamName), fromStreamCut, toStreamCut).getIterator().forEachRemaining(
                     segmentRange -> {
                         SegmentIterator<ByteBuffer> iterator = batchClient.readSegment(segmentRange, new ByteBufferSerializer());

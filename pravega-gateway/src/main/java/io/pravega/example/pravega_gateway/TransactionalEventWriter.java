@@ -1,7 +1,7 @@
 package io.pravega.example.pravega_gateway;
 
-import io.pravega.client.stream.EventStreamWriter;
 import io.pravega.client.stream.Transaction;
+import io.pravega.client.stream.TransactionalEventStreamWriter;
 import io.pravega.client.stream.TxnFailedException;
 
 import java.util.logging.Logger;
@@ -9,14 +9,14 @@ import java.util.logging.Logger;
 public class TransactionalEventWriter<T> extends AbstractEventWriter<T>  {
     private static final Logger logger = Logger.getLogger(TransactionalEventWriter.class.getName());
 
-    private final EventStreamWriter<T> pravegaWriter;
+    private final TransactionalEventStreamWriter<T> pravegaWriter;
 
     /**
      * The currently running transaction to which we write
      */
     private Transaction<T> currentTxn = null;
 
-    public TransactionalEventWriter(EventStreamWriter<T> pravegaWriter) {
+    public TransactionalEventWriter(TransactionalEventStreamWriter<T> pravegaWriter) {
         this.pravegaWriter = pravegaWriter;
     }
 
@@ -48,7 +48,7 @@ public class TransactionalEventWriter<T> extends AbstractEventWriter<T>  {
     }
 
     @Override
-    void close() throws TxnFailedException {
+    void close() {
         abort();
         pravegaWriter.close();
     }
