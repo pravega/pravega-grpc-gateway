@@ -290,8 +290,8 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
     public void batchReadEvents(BatchReadEventsRequest req, StreamObserver<BatchReadEventsResponse> responseObserver) {
         final String scope = req.getScope();
         final String streamName = req.getStream();
-        io.pravega.client.stream.StreamCut fromStreamCut = io.pravega.client.stream.StreamCut.from(req.getFromStreamCut().getText());
-        io.pravega.client.stream.StreamCut toStreamCut = io.pravega.client.stream.StreamCut.from(req.getToStreamCut().getText());
+        final io.pravega.client.stream.StreamCut fromStreamCut =  parseGrpcStreamCut(req.getFromStreamCut());
+        final io.pravega.client.stream.StreamCut toStreamCut =  parseGrpcStreamCut(req.getToStreamCut());
 
         try (BatchClientFactory batchClient = BatchClientFactory.withScope(scope, clientConfig)) {
             batchClient.getSegments(Stream.of(scope, streamName), fromStreamCut, toStreamCut).getIterator().forEachRemaining(
