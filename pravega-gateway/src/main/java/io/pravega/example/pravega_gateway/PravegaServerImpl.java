@@ -65,20 +65,12 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
         }
     }
 
-    private io.pravega.client.stream.StreamCut parseGrpcStreamCut(StreamCut grpcStreamCut) {
-        if (grpcStreamCut.getText().isEmpty()) {
-            return io.pravega.client.stream.StreamCut.UNBOUNDED;
-        } else {
-            return io.pravega.client.stream.StreamCut.from(grpcStreamCut.getText());
-        }
-    }
-
     @Override
     public void readEvents(ReadEventsRequest req, StreamObserver<ReadEventsResponse> responseObserver) {
         final String scope = req.getScope();
         final String streamName = req.getStream();
-        final io.pravega.client.stream.StreamCut fromStreamCut =  parseGrpcStreamCut(req.getFromStreamCut());
-        final io.pravega.client.stream.StreamCut toStreamCut =  parseGrpcStreamCut(req.getToStreamCut());
+        final io.pravega.client.stream.StreamCut fromStreamCut =  toPravegaStreamCut(req.getFromStreamCut());
+        final io.pravega.client.stream.StreamCut toStreamCut =  toPravegaStreamCut(req.getToStreamCut());
         final boolean haveEndStreamCut = (toStreamCut != io.pravega.client.stream.StreamCut.UNBOUNDED);
         final long timeoutMs = req.getTimeoutMs() == 0 ? DEFAULT_TIMEOUT_MS : req.getTimeoutMs();
 
@@ -266,20 +258,10 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
     @Override
     public void getStreamInfo(GetStreamInfoRequest req, StreamObserver<GetStreamInfoResponse> responseObserver) {
         try (StreamManager streamManager = StreamManager.create(clientConfig)) {
-            StreamInfo streamInfo = streamManager.getStreamInfo(req.getScope(), req.getStream());
-            StreamCut.Builder headStreamCutBuilder = StreamCut.newBuilder()
-                    .setText(streamInfo.getHeadStreamCut().asText());
-            for (Map.Entry<Segment, Long> entry : streamInfo.getHeadStreamCut().asImpl().getPositions().entrySet()) {
-                headStreamCutBuilder.putCut(entry.getKey().getSegmentId(), entry.getValue());
-            }
-            StreamCut.Builder tailStreamCutBuilder = StreamCut.newBuilder()
-                    .setText(streamInfo.getTailStreamCut().asText());
-            for (Map.Entry<Segment, Long> entry : streamInfo.getTailStreamCut().asImpl().getPositions().entrySet()) {
-                tailStreamCutBuilder.putCut(entry.getKey().getSegmentId(), entry.getValue());
-            }
-            GetStreamInfoResponse response = GetStreamInfoResponse.newBuilder()
-                    .setHeadStreamCut(headStreamCutBuilder.build())
-                    .setTailStreamCut(tailStreamCutBuilder.build())
+            final StreamInfo streamInfo = streamManager.getStreamInfo(req.getScope(), req.getStream());
+            final GetStreamInfoResponse response = GetStreamInfoResponse.newBuilder()
+                    .setHeadStreamCut(toGrpcStreamCut(streamInfo.getHeadStreamCut()))
+                    .setTailStreamCut(toGrpcStreamCut(streamInfo.getTailStreamCut()))
                     .build();
             responseObserver.onNext(response);
             responseObserver.onCompleted();
@@ -290,8 +272,8 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
     public void batchReadEvents(BatchReadEventsRequest req, StreamObserver<BatchReadEventsResponse> responseObserver) {
         final String scope = req.getScope();
         final String streamName = req.getStream();
-        final io.pravega.client.stream.StreamCut fromStreamCut =  parseGrpcStreamCut(req.getFromStreamCut());
-        final io.pravega.client.stream.StreamCut toStreamCut =  parseGrpcStreamCut(req.getToStreamCut());
+        final io.pravega.client.stream.StreamCut fromStreamCut =  toPravegaStreamCut(req.getFromStreamCut());
+        final io.pravega.client.stream.StreamCut toStreamCut =  toPravegaStreamCut(req.getToStreamCut());
 
         try (BatchClientFactory batchClient = BatchClientFactory.withScope(scope, clientConfig)) {
             batchClient.getSegments(Stream.of(scope, streamName), fromStreamCut, toStreamCut).getIterator().forEachRemaining(
@@ -312,4 +294,22 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
 
         responseObserver.onCompleted();
     }
+
+    private io.pravega.client.stream.StreamCut toPravegaStreamCut(StreamCut grpcStreamCut) {
+        if (grpcStreamCut.getText().isEmpty()) {
+            return io.pravega.client.stream.StreamCut.UNBOUNDED;
+        } else {
+            return io.pravega.client.stream.StreamCut.from(grpcStreamCut.getText());
+        }
+    }
+
+    private StreamCut toGrpcStreamCut(io.pravega.client.stream.StreamCut streamCut) {
+        StreamCut.Builder grpcStreamCutBuilder = StreamCut.newBuilder()
+                .setText(streamCut.asText());
+        for (Map.Entry<Segment, Long> entry : streamCut.asImpl().getPositions().entrySet()) {
+            grpcStreamCutBuilder.putCut(entry.getKey().getSegmentId(), entry.getValue());
+        }
+        return grpcStreamCutBuilder.build();
+    }
+
 }
