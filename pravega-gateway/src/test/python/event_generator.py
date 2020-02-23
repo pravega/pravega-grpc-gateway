@@ -44,14 +44,19 @@ def main():
     with grpc.insecure_channel(args.gateway) as pravega_channel:
         pravega_client = pravega.grpc.PravegaGatewayStub(pravega_channel)
 
-        response = pravega_client.CreateScope(pravega.pb.CreateScopeRequest(scope=args.scope))
+        request = pravega.pb.CreateScopeRequest(scope=args.scope)
+        logging.info('CreateScope request=%s' % request)
+        response = pravega_client.CreateScope(request)
         logging.info('CreateScope response=%s' % response)
 
-        response = pravega_client.CreateStream(pravega.pb.CreateStreamRequest(
+        request = pravega.pb.CreateStreamRequest(
             scope=args.scope,
             stream=args.stream,
             scaling_policy=pravega.pb.ScalingPolicy(min_num_segments=args.min_num_segments),
-        ))
+            retention_policy=pravega.pb.RetentionPolicy(retention_type='TIME', retention_param=2*24*60*60*1000),
+        )
+        logging.info('CreateStream request=%s' % request)
+        response = pravega_client.CreateStream(request)
         logging.info('CreateStream response=%s' % response)
 
         # response = pravega_client.UpdateStream(pravega.pb.UpdateStreamRequest(

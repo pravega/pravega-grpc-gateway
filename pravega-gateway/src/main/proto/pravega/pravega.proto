@@ -25,6 +25,17 @@ message ScalingPolicy {
   int32 min_num_segments = 4;
 }
 
+message RetentionPolicy {
+  enum RetentionPolicyType {
+    // Set retention based on how long data has been in the stream in milliseconds.
+    TIME = 0;
+    // Set retention based on the total size of the data in the stream in bytes.
+    SIZE = 1;
+  }
+  RetentionPolicyType retention_type = 1;
+  int64 retention_param = 2;
+}
+
 message CreateScopeRequest {
   string scope = 1;
 }
@@ -37,6 +48,7 @@ message CreateStreamRequest {
   string scope = 1;
   string stream = 2;
   ScalingPolicy scaling_policy = 3;
+  RetentionPolicy retention_policy = 4;
 }
 
 message CreateStreamResponse {
@@ -47,6 +59,7 @@ message UpdateStreamRequest {
   string scope = 1;
   string stream = 2;
   ScalingPolicy scaling_policy = 3;
+  RetentionPolicy retention_policy = 4;
 }
 
 message UpdateStreamResponse {
@@ -63,14 +76,38 @@ message ReadEventsRequest {
 
 message ReadEventsResponse {
   bytes event = 1;
-  // Identifies the event(s) immediately following this one.
-  string position = 2;
+  // Identifies the position of the reader AFTER reading this event.
+  Position position = 2;
   // A pointer to this event.
-  string event_pointer = 3;
+  EventPointer event_pointer = 3;
   // Empty string if this is not a checkpoint.
   string checkpoint_name = 4;
-  // Identifies the event(s) immediately following this one.
+  // Experimental use only: Identifies the event(s) immediately following this one.
   StreamCut stream_cut = 5;
+}
+
+message Position {
+  bytes bytes = 1;
+  // Below for debug use only
+  string description = 2;
+}
+
+message EventPointer {
+  bytes bytes = 1;
+  // Below for debug use only.
+  string description = 2;
+  string scope = 3;
+  string stream = 4;
+  int64 segment_id = 5;
+  int64 event_start_offset = 6;
+  int64 event_length = 7;
+}
+
+message StreamCut {
+  string text = 1;
+  // Below for debug use only.
+  string description = 2;
+  map<int64, int64> cut = 3;
 }
 
 // scope, stream, and use_transaction must be the same for all requests in the WriteEvents call.
@@ -96,12 +133,6 @@ message WriteEventsRequest {
 }
 
 message WriteEventsResponse {
-}
-
-message StreamCut {
-  // For debug use only.
-  map<int64, int64> cut = 1;
-  string text = 2;
 }
 
 message GetStreamInfoRequest {

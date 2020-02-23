@@ -14,6 +14,8 @@ import io.pravega.client.batch.SegmentIterator;
 import io.pravega.client.segment.impl.Segment;
 import io.pravega.client.stream.*;
 import io.pravega.client.stream.impl.ByteBufferSerializer;
+import io.pravega.client.stream.impl.EventPointerImpl;
+import io.pravega.client.stream.impl.PositionImpl;
 
 import java.nio.ByteBuffer;
 import java.util.Map;
@@ -40,12 +42,32 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
         }
     }
 
+    private io.pravega.client.stream.ScalingPolicy toPravegaScalingPolicy(ScalingPolicy grpcScalingPolicy) {
+        // TODO: Support other scaling policies.
+        final int minNumSegments = Integer.max(1, grpcScalingPolicy.getMinNumSegments());
+        return io.pravega.client.stream.ScalingPolicy.fixed(minNumSegments);
+    }
+
+    private io.pravega.client.stream.RetentionPolicy toPravegaRetentionPolicy(RetentionPolicy grpcRetentionPolicy) {
+        if (grpcRetentionPolicy.getRetentionParam() == 0) {
+            return null;
+        }
+        io.pravega.client.stream.RetentionPolicy.RetentionType retentionType = io.pravega.client.stream.RetentionPolicy.RetentionType.SIZE;
+        if (grpcRetentionPolicy.getRetentionType() == RetentionPolicy.RetentionPolicyType.TIME) {
+            retentionType = io.pravega.client.stream.RetentionPolicy.RetentionType.TIME;
+        }
+        return io.pravega.client.stream.RetentionPolicy.builder()
+                .retentionType(retentionType)
+                .retentionParam(grpcRetentionPolicy.getRetentionParam())
+                .build();
+    }
+
     @Override
     public void createStream(CreateStreamRequest req, StreamObserver<CreateStreamResponse> responseObserver) {
         try (StreamManager streamManager = StreamManager.create(clientConfig)) {
-            final int minNumSegments = Integer.max(1, req.getScalingPolicy().getMinNumSegments());
             StreamConfiguration streamConfig = StreamConfiguration.builder()
-                    .scalingPolicy(io.pravega.client.stream.ScalingPolicy.fixed(minNumSegments))
+                    .scalingPolicy(toPravegaScalingPolicy(req.getScalingPolicy()))
+                    .retentionPolicy(toPravegaRetentionPolicy(req.getRetentionPolicy()))
                     .build();
             boolean created = streamManager.createStream(req.getScope(), req.getStream(), streamConfig);
             responseObserver.onNext(CreateStreamResponse.newBuilder().setCreated(created).build());
@@ -57,7 +79,8 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
     public void updateStream(UpdateStreamRequest req, StreamObserver<UpdateStreamResponse> responseObserver) {
         try (StreamManager streamManager = StreamManager.create(clientConfig)) {
             StreamConfiguration streamConfig = StreamConfiguration.builder()
-                    .scalingPolicy(io.pravega.client.stream.ScalingPolicy.fixed(req.getScalingPolicy().getMinNumSegments()))
+                    .scalingPolicy(toPravegaScalingPolicy(req.getScalingPolicy()))
+                    .retentionPolicy(toPravegaRetentionPolicy(req.getRetentionPolicy()))
                     .build();
             boolean updated = streamManager.updateStream(req.getScope(), req.getStream(), streamConfig);
             responseObserver.onNext(UpdateStreamResponse.newBuilder().setUpdated(updated).build());
@@ -90,23 +113,33 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
                      readerGroup,
                      new ByteBufferSerializer(),
                      ReaderConfig.builder().build())) {
-            final StreamCutBuilder streamCutBuilder = new StreamCutBuilder(stream);
+            final StreamCutBuilder streamCutBuilder = new StreamCutBuilder(stream, fromStreamCut);
             for (;;) {
                 try {
                     EventRead<ByteBuffer> event = reader.readNextEvent(timeoutMs);
                     if (event.isCheckpoint()) {
-                        ReadEventsResponse response = ReadEventsResponse.newBuilder()
+                        final ReadEventsResponse response = ReadEventsResponse.newBuilder()
                                 .setCheckpointName(event.getCheckpointName())
                                 .build();
                         logger.fine("readEvents: response=" + response.toString());
                         responseObserver.onNext(response);
                     } else if (event.getEvent() != null) {
-                        streamCutBuilder.addEvent(event.getPosition());
-                        ReadEventsResponse response = ReadEventsResponse.newBuilder()
+                        final io.pravega.client.stream.Position position = event.getPosition();
+                        final io.pravega.client.stream.EventPointer eventPointer = event.getEventPointer();
+                        streamCutBuilder.addEvent(position);
+                        final io.pravega.client.stream.StreamCut streamCut = streamCutBuilder.getStreamCut();
+                        final ReadEventsResponse response = ReadEventsResponse.newBuilder()
                                 .setEvent(ByteString.copyFrom(event.getEvent()))
-                                .setPosition(event.getPosition().toString())
-                                .setEventPointer(event.getEventPointer().toString())
-                                .setStreamCut(StreamCut.newBuilder().setText(streamCutBuilder.getStreamCut().asText()))
+                                .setPosition(Position.newBuilder()
+                                        .setBytes(ByteString.copyFrom(position.toBytes()))
+                                        .setDescription(position.toString())
+                                        .build())
+                                .setEventPointer(EventPointer.newBuilder()
+                                        .setBytes(ByteString.copyFrom(eventPointer.toBytes()))
+                                        .setDescription(eventPointer.toString()))
+                                .setStreamCut(StreamCut.newBuilder()
+                                        .setText(streamCut.asText())
+                                        .setDescription(streamCut.toString()))
                                 .build();
                         logger.fine("readEvents: response=" + response.toString());
                         responseObserver.onNext(response);
