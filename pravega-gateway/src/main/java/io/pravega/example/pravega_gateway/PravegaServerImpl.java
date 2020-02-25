@@ -14,8 +14,6 @@ import io.pravega.client.batch.SegmentIterator;
 import io.pravega.client.segment.impl.Segment;
 import io.pravega.client.stream.*;
 import io.pravega.client.stream.impl.ByteBufferSerializer;
-import io.pravega.client.stream.impl.EventPointerImpl;
-import io.pravega.client.stream.impl.PositionImpl;
 
 import java.nio.ByteBuffer;
 import java.util.Map;
@@ -40,26 +38,6 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
             responseObserver.onNext(CreateScopeResponse.newBuilder().setCreated(created).build());
             responseObserver.onCompleted();
         }
-    }
-
-    private io.pravega.client.stream.ScalingPolicy toPravegaScalingPolicy(ScalingPolicy grpcScalingPolicy) {
-        // TODO: Support other scaling policies.
-        final int minNumSegments = Integer.max(1, grpcScalingPolicy.getMinNumSegments());
-        return io.pravega.client.stream.ScalingPolicy.fixed(minNumSegments);
-    }
-
-    private io.pravega.client.stream.RetentionPolicy toPravegaRetentionPolicy(RetentionPolicy grpcRetentionPolicy) {
-        if (grpcRetentionPolicy.getRetentionParam() == 0) {
-            return null;
-        }
-        io.pravega.client.stream.RetentionPolicy.RetentionType retentionType = io.pravega.client.stream.RetentionPolicy.RetentionType.SIZE;
-        if (grpcRetentionPolicy.getRetentionType() == RetentionPolicy.RetentionPolicyType.TIME) {
-            retentionType = io.pravega.client.stream.RetentionPolicy.RetentionType.TIME;
-        }
-        return io.pravega.client.stream.RetentionPolicy.builder()
-                .retentionType(retentionType)
-                .retentionParam(grpcRetentionPolicy.getRetentionParam())
-                .build();
     }
 
     @Override
@@ -104,71 +82,73 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
                 .build();
         try (ReaderGroupManager readerGroupManager = ReaderGroupManager.withScope(scope, clientConfig)) {
             readerGroupManager.createReaderGroup(readerGroup, readerGroupConfig);
-        }
+            try {
+                final String readerId = UUID.randomUUID().toString();
+                try (EventStreamClientFactory clientFactory = EventStreamClientFactory.withScope(scope, clientConfig);
+                     EventStreamReader<ByteBuffer> reader = clientFactory.createReader(
+                             readerId,
+                             readerGroup,
+                             new ByteBufferSerializer(),
+                             ReaderConfig.builder().build())) {
+                    final StreamCutBuilder streamCutBuilder = new StreamCutBuilder(stream, fromStreamCut);
+                    for (; ; ) {
+                        try {
+                            EventRead<ByteBuffer> event = reader.readNextEvent(timeoutMs);
+                            if (event.isCheckpoint()) {
+                                final ReadEventsResponse response = ReadEventsResponse.newBuilder()
+                                        .setCheckpointName(event.getCheckpointName())
+                                        .build();
+                                logger.fine("readEvents: response=" + response.toString());
+                                responseObserver.onNext(response);
+                            } else if (event.getEvent() != null) {
+                                final io.pravega.client.stream.Position position = event.getPosition();
+                                final io.pravega.client.stream.EventPointer eventPointer = event.getEventPointer();
+                                streamCutBuilder.addEvent(position);
+                                final io.pravega.client.stream.StreamCut streamCut = streamCutBuilder.getStreamCut();
+                                final ReadEventsResponse response = ReadEventsResponse.newBuilder()
+                                        .setEvent(ByteString.copyFrom(event.getEvent()))
+                                        .setPosition(Position.newBuilder()
+                                                .setBytes(ByteString.copyFrom(position.toBytes()))
+                                                .setDescription(position.toString())
+                                                .build())
+                                        .setEventPointer(EventPointer.newBuilder()
+                                                .setBytes(ByteString.copyFrom(eventPointer.toBytes()))
+                                                .setDescription(eventPointer.toString()))
+                                        .setStreamCut(StreamCut.newBuilder()
+                                                .setText(streamCut.asText())
+                                                .setDescription(streamCut.toString()))
+                                        .build();
+                                logger.fine("readEvents: response=" + response.toString());
+                                responseObserver.onNext(response);
+                            } else {
+                                if (haveEndStreamCut) {
+                                    // If this is a bounded stream with an end stream cut, then we
+                                    // have reached the end stream cut.
+                                    logger.info("readEvents: no more events, completing RPC");
+                                    break;
+                                } else {
+                                    // If this is an unbounded stream, all events have been read and a
+                                    // timeout has occurred.
+                                }
+                            }
 
-        final String readerId = UUID.randomUUID().toString();
-        try (EventStreamClientFactory clientFactory = EventStreamClientFactory.withScope(scope, clientConfig);
-             EventStreamReader<ByteBuffer> reader = clientFactory.createReader(
-                     readerId,
-                     readerGroup,
-                     new ByteBufferSerializer(),
-                     ReaderConfig.builder().build())) {
-            final StreamCutBuilder streamCutBuilder = new StreamCutBuilder(stream, fromStreamCut);
-            for (;;) {
-                try {
-                    EventRead<ByteBuffer> event = reader.readNextEvent(timeoutMs);
-                    if (event.isCheckpoint()) {
-                        final ReadEventsResponse response = ReadEventsResponse.newBuilder()
-                                .setCheckpointName(event.getCheckpointName())
-                                .build();
-                        logger.fine("readEvents: response=" + response.toString());
-                        responseObserver.onNext(response);
-                    } else if (event.getEvent() != null) {
-                        final io.pravega.client.stream.Position position = event.getPosition();
-                        final io.pravega.client.stream.EventPointer eventPointer = event.getEventPointer();
-                        streamCutBuilder.addEvent(position);
-                        final io.pravega.client.stream.StreamCut streamCut = streamCutBuilder.getStreamCut();
-                        final ReadEventsResponse response = ReadEventsResponse.newBuilder()
-                                .setEvent(ByteString.copyFrom(event.getEvent()))
-                                .setPosition(Position.newBuilder()
-                                        .setBytes(ByteString.copyFrom(position.toBytes()))
-                                        .setDescription(position.toString())
-                                        .build())
-                                .setEventPointer(EventPointer.newBuilder()
-                                        .setBytes(ByteString.copyFrom(eventPointer.toBytes()))
-                                        .setDescription(eventPointer.toString()))
-                                .setStreamCut(StreamCut.newBuilder()
-                                        .setText(streamCut.asText())
-                                        .setDescription(streamCut.toString()))
-                                .build();
-                        logger.fine("readEvents: response=" + response.toString());
-                        responseObserver.onNext(response);
-                    } else {
-                        if (haveEndStreamCut) {
-                            // If this is a bounded stream with an end stream cut, then we
-                            // have reached the end stream cut.
-                            logger.info("readEvents: no more events, completing RPC");
-                            break;
-                        } else {
-                            // If this is an unbounded stream, all events have been read and a
-                            // timeout has occurred.
+                            if (Context.current().isCancelled()) {
+                                logger.warning("context cancelled");
+                                responseObserver.onError(Status.CANCELLED.asRuntimeException());
+                                return;
+                            }
+                        } catch (ReinitializationRequiredException e) {
+                            // There are certain circumstances where the reader needs to be reinitialized
+                            logger.warning(e.toString());
+                            responseObserver.onError(e);
+                            return;
                         }
                     }
-
-                    if (Context.current().isCancelled()) {
-                        logger.warning("context cancelled");
-                        responseObserver.onError(Status.CANCELLED.asRuntimeException());
-                        return;
-                    }
-                } catch (ReinitializationRequiredException e) {
-                    // There are certain circumstances where the reader needs to be reinitialized
-                    logger.warning(e.toString());
-                    responseObserver.onError(e);
-                    return;
                 }
+            } finally {
+                readerGroupManager.deleteReaderGroup(readerGroup);
             }
         }
-
         responseObserver.onCompleted();
     }
 
@@ -326,6 +306,26 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
         }
 
         responseObserver.onCompleted();
+    }
+
+    private io.pravega.client.stream.ScalingPolicy toPravegaScalingPolicy(ScalingPolicy grpcScalingPolicy) {
+        // TODO: Support other scaling policies.
+        final int minNumSegments = Integer.max(1, grpcScalingPolicy.getMinNumSegments());
+        return io.pravega.client.stream.ScalingPolicy.fixed(minNumSegments);
+    }
+
+    private io.pravega.client.stream.RetentionPolicy toPravegaRetentionPolicy(RetentionPolicy grpcRetentionPolicy) {
+        if (grpcRetentionPolicy.getRetentionParam() == 0) {
+            return null;
+        }
+        io.pravega.client.stream.RetentionPolicy.RetentionType retentionType = io.pravega.client.stream.RetentionPolicy.RetentionType.SIZE;
+        if (grpcRetentionPolicy.getRetentionType() == RetentionPolicy.RetentionPolicyType.TIME) {
+            retentionType = io.pravega.client.stream.RetentionPolicy.RetentionType.TIME;
+        }
+        return io.pravega.client.stream.RetentionPolicy.builder()
+                .retentionType(retentionType)
+                .retentionParam(grpcRetentionPolicy.getRetentionParam())
+                .build();
     }
 
     private io.pravega.client.stream.StreamCut toPravegaStreamCut(StreamCut grpcStreamCut) {
