@@ -98,32 +98,30 @@ message ReadEventsResponse {
   StreamCut stream_cut = 5;
 }
 
+// Identifies the position of a reader in zero or more streams and segments.
 message Position {
   bytes bytes = 1;
-  // Below for debug use only
+  // For debug use only
   string description = 2;
 }
 
+// Identifies a single event.
 message EventPointer {
   bytes bytes = 1;
-  // Below for debug use only.
+  // For debug use only
   string description = 2;
-  string scope = 3;
-  string stream = 4;
-  int64 segment_id = 5;
-  int64 event_start_offset = 6;
-  int64 event_length = 7;
 }
 
+// Identifies a "cut" in the entire keyspace of a single stream.
 message StreamCut {
   // Empty string represents an unbounded stream cut.
   string text = 1;
-  // Below for debug use only.
+  // For debug use only
   string description = 2;
+  // For debug use only
   map<int64, int64> cut = 3;
 }
 
-// scope, stream, and use_transaction must be the same for all requests in the WriteEvents call.
 message WriteEventsRequest {
   // The event to write. Events must be 1 MiB or less.
   bytes event = 1;
