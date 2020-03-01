@@ -30,10 +30,7 @@ dependencies {
     compile "io.pravega:pravega-client:${pravegaVersion}",
             "io.pravega:pravega-common:${pravegaVersion}",
             "commons-cli:commons-cli:${commonsCLIVersion}"
-
-    if (includePravegaCredentials.toBoolean()) {
-        compile "io.pravega:pravega-keycloak-client:${pravegaCredentialsVersion}"
-    }
+    compile "io.pravega:pravega-keycloak-client:${pravegaCredentialsVersion}"
 
     compile group: 'io.netty', name: 'netty-all', version: nettyVersion
     compile "io.grpc:grpc-netty:" + grpcVersion
