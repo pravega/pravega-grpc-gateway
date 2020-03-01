@@ -61,7 +61,7 @@ This will build the Python files necessary to allow a Python application to call
 
 2. Create Conda environment.
     ```
-    cd pravega-grpc-gateway   
+    cd pravega-grpc-gateway
     ./create_conda_env.sh
     ```
 

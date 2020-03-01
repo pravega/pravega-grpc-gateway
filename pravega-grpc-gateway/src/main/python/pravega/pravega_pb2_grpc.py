@@ -77,15 +77,20 @@ class PravegaGatewayServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def ReadEvents(self, request, context):
-    # missing associated documentation comment in .proto file
-    pass
+    """
+    Read events from a stream. This will create a new reader group with exactly one reader.
+    From and to stream cuts can be provided for a bounded read.
+    Multiple events are returned as a GRPC stream.
+    """
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def WriteEvents(self, request_iterator, context):
-    # missing associated documentation comment in .proto file
-    pass
+    """
+    Write events to a stream. This supports transactional and non-transactional writes.
+    Multiple events can be written as a GRPC stream.
+    """
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
