@@ -1,4 +1,4 @@
-package io.pravega.example.pravega_gateway;
+package io.pravega.example.gateway.grpc;
 
 import com.google.protobuf.ByteString;
 import io.grpc.Context;
@@ -114,7 +114,7 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
                                         .setEventPointer(EventPointer.newBuilder()
                                                 .setBytes(ByteString.copyFrom(eventPointer.toBytes()))
                                                 .setDescription(eventPointer.toString()))
-                                        .setStreamCut(StreamCut.newBuilder()
+                                        .setStreamCut(io.pravega.example.gateway.grpc.StreamCut.newBuilder()
                                                 .setText(streamCut.asText())
                                                 .setDescription(streamCut.toString()))
                                         .build();
@@ -308,7 +308,7 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
         responseObserver.onCompleted();
     }
 
-    private io.pravega.client.stream.ScalingPolicy toPravegaScalingPolicy(ScalingPolicy grpcScalingPolicy) {
+    private io.pravega.client.stream.ScalingPolicy toPravegaScalingPolicy(io.pravega.example.gateway.grpc.ScalingPolicy grpcScalingPolicy) {
         // TODO: Support other scaling policies.
         final int minNumSegments = Integer.max(1, grpcScalingPolicy.getMinNumSegments());
         return io.pravega.client.stream.ScalingPolicy.fixed(minNumSegments);
@@ -328,7 +328,7 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
                 .build();
     }
 
-    private io.pravega.client.stream.StreamCut toPravegaStreamCut(StreamCut grpcStreamCut) {
+    private io.pravega.client.stream.StreamCut toPravegaStreamCut(io.pravega.example.gateway.grpc.StreamCut grpcStreamCut) {
         if (grpcStreamCut.getText().isEmpty()) {
             return io.pravega.client.stream.StreamCut.UNBOUNDED;
         } else {
@@ -336,8 +336,8 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
         }
     }
 
-    private StreamCut toGrpcStreamCut(io.pravega.client.stream.StreamCut streamCut) {
-        StreamCut.Builder grpcStreamCutBuilder = StreamCut.newBuilder()
+    private io.pravega.example.gateway.grpc.StreamCut toGrpcStreamCut(io.pravega.client.stream.StreamCut streamCut) {
+        io.pravega.example.gateway.grpc.StreamCut.Builder grpcStreamCutBuilder = io.pravega.example.gateway.grpc.StreamCut.newBuilder()
                 .setText(streamCut.asText());
         for (Map.Entry<Segment, Long> entry : streamCut.asImpl().getPositions().entrySet()) {
             grpcStreamCutBuilder.putCut(entry.getKey().getSegmentId(), entry.getValue());

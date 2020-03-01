@@ -11,7 +11,7 @@ RUN apt-get update \
 
 USER gradle
 
-ENV APP_NAME=pravega-gateway
+ENV APP_NAME=pravega-grpc-gateway
 
 COPY --chown=gradle:gradle build.gradle /home/gradle/src/build.gradle
 COPY --chown=gradle:gradle gradle.properties /home/gradle/src/gradle.properties
@@ -29,7 +29,7 @@ RUN gradle :${APP_NAME}:installDist \
 
 FROM openjdk:8-jre
 
-ENV APP_NAME=pravega-gateway
+ENV APP_NAME=pravega-grpc-gateway
 ENV LISTEN_PORT=80
 
 EXPOSE 80

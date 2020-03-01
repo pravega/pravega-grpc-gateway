@@ -1,6 +1,8 @@
 image:
-  repository: pravega-gateway
-  tag: 0.3.0
+  repository: pravega-grpc-gateway
+  tag: 0.6.0
 
 pravega:
   controller: "tcp://nautilus-pravega-controller.nautilus-pravega.svc.cluster.local:9090"
+
+app: pravega-grpc-gateway

@@ -8,8 +8,8 @@ ROOT_DIR=$(dirname $0)/..
 NAMESPACE=examples
 
 helm upgrade --install \
-pravega-gateway \
+pravega-grpc-gateway \
 --namespace ${NAMESPACE} \
-${ROOT_DIR}/charts/pravega-gateway \
---set image.repository=${DOCKER_REPOSITORY}/pravega-gateway \
+${ROOT_DIR}/charts/pravega-grpc-gateway \
+--set image.repository=${DOCKER_REPOSITORY}/pravega-grpc-gateway \
 --set image.tag=${IMAGE_TAG}

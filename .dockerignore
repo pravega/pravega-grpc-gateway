@@ -4,5 +4,5 @@
 charts
 env
 gradle
-pravega-gateway/build
-pravega-gateway/env
+pravega-grpc-gateway/build
+pravega-grpc-gateway/env

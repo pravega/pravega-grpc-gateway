@@ -1,4 +1,4 @@
 #! /bin/bash
 set -x
 
-helm delete --purge pravega-gateway
+helm delete --purge pravega-grpc-gateway

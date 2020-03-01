@@ -7,17 +7,12 @@ plugins {
     id 'idea'
 }
 
-repositories {
-    maven { // The google mirror is less flaky than mavenCentral()
-        url "https://maven-central.storage-download.googleapis.com/repos/central/data/"
-    }
-    mavenLocal()
-}
-
+group = "io.pravega.example"
+version = pravegaGrpcGatewayVersion
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
-mainClassName = "io.pravega.example.pravega_gateway.PravegaGateway"
-archivesBaseName = "pravega-gateway"
+mainClassName = "io.pravega.example.gateway.grpc.PravegaGateway"
+archivesBaseName = "pravega-grpc-gateway"
 
 ext {
     junitVersion = '4.12'
@@ -37,7 +32,7 @@ dependencies {
             "commons-cli:commons-cli:${commonsCLIVersion}"
 
     if (includePravegaCredentials.toBoolean()) {
-        compile "io.pravega:pravega-keycloak-credentials:${pravegaCredentialsVersion}"
+        compile "io.pravega:pravega-keycloak-client:${pravegaCredentialsVersion}"
     }
 
     compile group: 'io.netty', name: 'netty-all', version: nettyVersion

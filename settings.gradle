@@ -10,4 +10,4 @@
 
 rootProject.name = "pravega-grpc-gateway"
 
-include "pravega-gateway"
+include "pravega-grpc-gateway"

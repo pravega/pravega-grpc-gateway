@@ -10,3 +10,19 @@ configurations.all {
     // Check for updates every build
     resolutionStrategy.cacheChangingModulesFor 0, "seconds"
 }
+
+subprojects {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        maven {
+            url "https://oss.jfrog.org/jfrog-dependencies"
+        }
+        maven {
+            url "https://repository.apache.org/snapshots"
+        }
+        maven {
+            url "https://oss.sonatype.org/content/repositories/snapshots"
+        }
+    }
+}

@@ -26,15 +26,15 @@ export PRAVEGA_CONTROLLER=tcp://localhost:9090
 
 ```
 export DOCKER_REPOSITORY=claudiofahey
-export IMAGE_TAG=0.4.0
+export IMAGE_TAG=0.6.0
 export PRAVEGA_CONTROLLER=tcp://localhost:9090
 scripts/build-k8s-components.sh
 docker run -d \
   --restart always \
   -e PRAVEGA_CONTROLLER \
   -p 54672:80 \
-  --name pravega-gateway \
-  ${DOCKER_REPOSITORY}/pravega-gateway:${IMAGE_TAG}
+  --name pravega-grpc-gateway \
+  ${DOCKER_REPOSITORY}/pravega-grpc-gateway:${IMAGE_TAG}
 ```
 
 # Run Gateway in Kubernetes
@@ -46,7 +46,7 @@ place them in the ca-certificates directory.
 
 ```
 export DOCKER_REPOSITORY=<hostname>:<port>/<namespace>
-export IMAGE_TAG=0.3.0
+export IMAGE_TAG=0.6.0
 scripts/build-k8s-components.sh
 scripts/deploy-k8s-components.sh
 ```
@@ -61,7 +61,7 @@ This will build the Python files necessary to allow a Python application to call
 
 2. Create Conda environment.
     ```
-    cd pravega-gateway   
+    cd pravega-grpc-gateway   
     ./create_conda_env.sh
     ```
 

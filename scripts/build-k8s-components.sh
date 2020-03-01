@@ -6,6 +6,6 @@ set -ex
 
 ROOT_DIR=$(dirname $0)/..
 
-docker build -f ${ROOT_DIR}/pravega-gateway/Dockerfile ${ROOT_DIR} --tag ${DOCKER_REPOSITORY}/pravega-gateway:${IMAGE_TAG}
+docker build -f ${ROOT_DIR}/pravega-grpc-gateway/Dockerfile ${ROOT_DIR} --tag ${DOCKER_REPOSITORY}/pravega-grpc-gateway:${IMAGE_TAG}
 
-docker push ${DOCKER_REPOSITORY}/pravega-gateway:${IMAGE_TAG}
+docker push ${DOCKER_REPOSITORY}/pravega-grpc-gateway:${IMAGE_TAG}
