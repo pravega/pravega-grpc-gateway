@@ -6,7 +6,7 @@ setuptools.setup(
     author="Claudio Fahey",
     author_email="claudio.fahey@dell.com",
     description="Pravega GRPC Gateway Client",
-    url="https://github.com/pravega/pravega",
+    url="https://github.com/pravega/pravega-grpc-gateway",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
