@@ -20,7 +20,7 @@ ext {
 }
 
 dependencies {
-    compile "org.slf4j:slf4j-api:1.7.13"
+    compile "org.slf4j:slf4j-api:${slf4jApiVersion}"
     compile "ch.qos.logback:logback-classic:${logbackVersion}"
     compile "ch.qos.logback:logback-core:${logbackVersion}"
     compile "net.logstash.logback:logstash-logback-encoder:${logstashLogbackEncoderVersion}"
@@ -38,6 +38,8 @@ dependencies {
     compile "io.grpc:grpc-protobuf:" + grpcVersion
     compile "io.grpc:grpc-stub:" + grpcVersion
     compile group: 'io.netty', name: 'netty-tcnative-boringssl-static', version: nettyBoringSSLVersion
+
+    compile group: 'com.google.guava', name: 'guava', version: guavaVersion
 }
 
 protobuf {

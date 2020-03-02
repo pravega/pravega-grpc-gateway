@@ -1,5 +1,9 @@
 package io.pravega.example.gateway.grpc;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.google.common.cache.RemovalNotification;
 import com.google.protobuf.ByteString;
 import io.grpc.Context;
 import io.grpc.Status;
@@ -15,21 +19,50 @@ import io.pravega.client.segment.impl.NoSuchEventException;
 import io.pravega.client.segment.impl.Segment;
 import io.pravega.client.stream.*;
 import io.pravega.client.stream.impl.ByteBufferSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.UUID;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
-    private static final Logger logger = Logger.getLogger(PravegaGateway.class.getName());
+    private static final Logger log = LoggerFactory.getLogger(PravegaGateway.class.getName());
     static final long DEFAULT_TIMEOUT_MS = 1000;
 
     private final ClientConfig clientConfig;
 
+    /**
+     * Cache to hold readers used by fetchEvent.
+     */
+    private final LoadingCache<Stream, CachedFetchEventReader> fetchEventReaderCache;
+
+    private final ScheduledExecutorService cleanupExecutor = Executors.newSingleThreadScheduledExecutor();
+
     PravegaServerImpl() {
         clientConfig = ClientConfig.builder().controllerURI(Parameters.getControllerURI()).build();
+        fetchEventReaderCache = CacheBuilder.newBuilder()
+            .expireAfterAccess(Parameters.getCleanupPeriodSec(), TimeUnit.SECONDS)
+            .removalListener((RemovalNotification<Stream, CachedFetchEventReader> notification) -> {
+                log.info("Removing the cached reader for {}", notification.getKey().getScopedName());
+                notification.getValue().close();
+            })
+            .build(new CacheLoader<Stream, CachedFetchEventReader>() {
+                @Override
+                public CachedFetchEventReader load(Stream stream) throws Exception {
+                    return getFetchEventReader(stream);
+                }
+            });
+        cleanupExecutor.scheduleAtFixedRate(this::cleanUp,
+            Parameters.getCleanupPeriodSec(), Parameters.getCleanupPeriodSec(), TimeUnit.SECONDS);
+    }
+
+    private void cleanUp() {
+        fetchEventReaderCache.cleanUp();
     }
 
     @Override
@@ -109,7 +142,7 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
                                 final ReadEventsResponse response = ReadEventsResponse.newBuilder()
                                         .setCheckpointName(event.getCheckpointName())
                                         .build();
-                                logger.fine("readEvents: response=" + response.toString());
+                                log.trace("readEvents: response={}", response);
                                 responseObserver.onNext(response);
                             } else if (event.getEvent() != null) {
                                 final io.pravega.client.stream.Position position = event.getPosition();
@@ -129,13 +162,13 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
                                                 .setText(streamCut.asText())
                                                 .setDescription(streamCut.toString()))
                                         .build();
-                                logger.fine("readEvents: response=" + response.toString());
+                                log.trace("readEvents: response={}", response);
                                 responseObserver.onNext(response);
                             } else {
                                 if (haveEndStreamCut) {
                                     // If this is a bounded stream with an end stream cut, then we
                                     // have reached the end stream cut.
-                                    logger.info("readEvents: no more events, completing RPC");
+                                    log.info("readEvents: no more events, completing RPC");
                                     break;
                                 } else {
                                     // If this is an unbounded stream, all events have been read and a
@@ -144,13 +177,13 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
                             }
 
                             if (Context.current().isCancelled()) {
-                                logger.warning("context cancelled");
+                                log.warn("context cancelled");
                                 responseObserver.onError(Status.CANCELLED.asRuntimeException());
                                 return;
                             }
                         } catch (ReinitializationRequiredException e) {
                             // There are certain circumstances where the reader needs to be reinitialized
-                            logger.warning(e.toString());
+                            log.error("Error reading next event", e);
                             responseObserver.onError(e);
                             return;
                         }
@@ -163,37 +196,25 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
         responseObserver.onCompleted();
     }
 
+    /**
+     * Fetch a single event using an event pointer.
+     * This uses a cached reader to reduce latency.
+     */
     @Override
     public void fetchEvent(FetchEventRequest req, StreamObserver<FetchEventResponse> responseObserver) {
         final String scope = req.getScope();
         final String streamName = req.getStream();
-        final String readerGroup = UUID.randomUUID().toString().replace("-", "");
         final Stream stream = Stream.of(scope, streamName);
         final io.pravega.client.stream.EventPointer eventPointer = toPravegaEventPointer(req.getEventPointer());
-        final ReaderGroupConfig readerGroupConfig = ReaderGroupConfig.builder()
-                .stream(stream)
-                .build();
-        try (ReaderGroupManager readerGroupManager = ReaderGroupManager.withScope(scope, clientConfig)) {
-            readerGroupManager.createReaderGroup(readerGroup, readerGroupConfig);
-            try {
-                final String readerId = UUID.randomUUID().toString();
-                try (EventStreamClientFactory clientFactory = EventStreamClientFactory.withScope(scope, clientConfig);
-                     EventStreamReader<ByteBuffer> reader = clientFactory.createReader(
-                             readerId,
-                             readerGroup,
-                             new ByteBufferSerializer(),
-                             ReaderConfig.builder().build())) {
-                    final ByteBuffer event = reader.fetchEvent(eventPointer);
-                    final FetchEventResponse response = FetchEventResponse.newBuilder()
-                            .setEvent(ByteString.copyFrom(event))
-                            .build();
-                    logger.fine("fetchEvent: response=" + response.toString());
-                    responseObserver.onNext(response);
-                }
-            } finally {
-                readerGroupManager.deleteReaderGroup(readerGroup);
-            }
-        } catch (NoSuchEventException e) {
+        try {
+            final CachedFetchEventReader cachedFetchEventReader = fetchEventReaderCache.get(stream);
+            final ByteBuffer event = cachedFetchEventReader.getReader().fetchEvent(eventPointer);
+            final FetchEventResponse response = FetchEventResponse.newBuilder()
+                    .setEvent(ByteString.copyFrom(event))
+                    .build();
+            log.trace("fetchEvent: response={}", response);
+            responseObserver.onNext(response);
+        } catch (ExecutionException | NoSuchEventException e) {
             throw new RuntimeException(e);
         }
         responseObserver.onCompleted();
@@ -211,7 +232,7 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
 
             @Override
             public void onNext(WriteEventsRequest req) {
-                logger.fine("writeEvents: req=" + req.toString());
+                log.trace("writeEvents: req={}", req);
                 if (writer == null) {
                     scope = req.getScope();
                     streamName = req.getStream();
@@ -275,7 +296,7 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
 
             @Override
             public void onError(Throwable t) {
-                logger.log(Level.WARNING, "Encountered error in writeEvents", t);
+                log.error("Encountered error in writeEvents", t);
                 if (writer != null) {
                     try {
                         writer.close();
@@ -308,7 +329,7 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
                 }
                 WriteEventsResponse response = WriteEventsResponse.newBuilder()
                         .build();
-                logger.fine("writeEvents: response=" + response.toString());
+                log.trace("writeEvents: response={}", response);
                 responseObserver.onNext(response);
                 responseObserver.onCompleted();
             }
@@ -397,4 +418,36 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
         return grpcStreamCutBuilder.build();
     }
 
+    private CachedFetchEventReader getFetchEventReader(Stream stream) {
+        final ReaderGroupManager readerGroupManager = ReaderGroupManager.withScope(stream.getScope(), clientConfig);
+        try {
+            final String readerGroup = UUID.randomUUID().toString().replace("-", "");
+            final ReaderGroupConfig readerGroupConfig = ReaderGroupConfig.builder()
+                    .stream(stream)
+                    .build();
+            readerGroupManager.createReaderGroup(readerGroup, readerGroupConfig);
+            try {
+                final EventStreamClientFactory clientFactory = EventStreamClientFactory.withScope(stream.getScope(), clientConfig);
+                try {
+                    final String readerId = UUID.randomUUID().toString();
+                    EventStreamReader<ByteBuffer> reader = clientFactory.createReader(
+                            readerId,
+                            readerGroup,
+                            new ByteBufferSerializer(),
+                            ReaderConfig.builder().build());
+                    log.info("getFetchEventReader: Created reader for stream {}", stream.getScopedName());
+                    return new CachedFetchEventReader(readerGroupManager, readerGroup, clientFactory, reader);
+                } catch (Exception e) {
+                    clientFactory.close();
+                    throw e;
+                }
+            } catch (Exception e) {
+                readerGroupManager.deleteReaderGroup(readerGroup);
+                throw e;
+            }
+        } catch (Exception e) {
+            readerGroupManager.close();
+            throw e;
+        }
+    }
 }

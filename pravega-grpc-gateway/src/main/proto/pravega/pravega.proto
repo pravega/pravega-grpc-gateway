@@ -17,7 +17,7 @@ service PravegaGateway {
   rpc ReadEvents(ReadEventsRequest) returns (stream ReadEventsResponse) {}
 
   /*
-  Fetch a single events from a stream.
+  Fetch a single event using an event pointer.
   */
   rpc FetchEvent(FetchEventRequest) returns (FetchEventResponse) {}
 
