@@ -37,9 +37,7 @@ docker run -d \
   ${DOCKER_REPOSITORY}/pravega-grpc-gateway:${IMAGE_TAG}
 ```
 
-# Run Gateway in Kubernetes
-
-Place pravega-keycloak-credentials-*-shadow.jar in the lib directory.
+# Run Gateway in Dell EMC Streaming Data Platform (SDP)
 
 If your network requires non-standard TLS certificates to be trusted during the build process, 
 place them in the ca-certificates directory.
@@ -51,11 +49,7 @@ scripts/build-k8s-components.sh
 scripts/deploy-k8s-components.sh
 ```
 
-# Rebuild Python GRPC Stub for Pravega Gateway
-
-This section is only needed if you make changes to the pravega.proto file.
-
-This will build the Python files necessary to allow a Python application to call this gateway.
+# Create Python Environment
 
 1. Install [Miniconda Python 3.7](https://docs.conda.io/en/latest/miniconda.html).
 
@@ -65,16 +59,28 @@ This will build the Python files necessary to allow a Python application to call
     ./create_conda_env.sh
     ```
 
-3. Run Protobuf compiler.
+# Run Test and Sample Applications
+
+1. Create Python environment as shown above.
+
+2. Run the following commands:
+    ```
+    cd pravega-grpc-gateway
+    conda activate ./env
+    pip install -e src/main/python
+    src/test/python/integration_test1.py
+    ```
+
+# Rebuild Python GRPC Stub for Pravega Gateway
+
+This section is only needed if you make changes to the pravega.proto file.
+
+This will build the Python files necessary to allow a Python application to call this gateway.
+
+1. Create Python environment as shown above.
+
+2. Run Protobuf compiler.
     ```
     ./build_python.sh
     ```
 
-# Run Test and Sample Applications
-
-```
-cd pravega-grpc-gateway
-conda activate ./env
-pip install -e src/main/python
-src/test/python/event_generator.py
-```

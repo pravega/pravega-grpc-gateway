@@ -11,4 +11,4 @@ spec:
     app: {{ .Values.app }}
     component: pravega-grpc-gateway
     release: {{ .Release.Name }}
-  type: NodePort
+  type: {{ .Values.serviceType }}

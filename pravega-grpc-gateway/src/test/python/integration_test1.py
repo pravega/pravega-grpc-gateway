@@ -24,17 +24,19 @@ def main():
     parser.add_argument('--gateway', default='localhost:54672')
     parser.add_argument('--scope', default='examples')
     parser.add_argument('--num_events', default=2, type=int)
+    parser.add_argument('--no_create_scope', dest='create_scope', action='store_false')
     args = parser.parse_args()
     logging.info('args=%s' % str(args))
 
     with grpc.insecure_channel(args.gateway) as pravega_channel:
         pravega_client = pravega.grpc.PravegaGatewayStub(pravega_channel)
 
-        logging.info('-------- Create scope --------')
-        request = pravega.pb.CreateScopeRequest(scope=args.scope)
-        logging.info('CreateScope request=%s' % request)
-        response = pravega_client.CreateScope(request)
-        logging.info('CreateScope response=%s' % response)
+        if args.create_scope:
+            logging.info('-------- Create scope --------')
+            request = pravega.pb.CreateScopeRequest(scope=args.scope)
+            logging.info('CreateScope request=%s' % request)
+            response = pravega_client.CreateScope(request)
+            logging.info('CreateScope response=%s' % response)
 
         logging.info('-------- Create stream --------')
         stream = 'test-%s' % str(uuid.uuid4())

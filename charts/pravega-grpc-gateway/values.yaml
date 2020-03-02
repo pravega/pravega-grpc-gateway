@@ -1,8 +1,7 @@
+app: pravega-grpc-gateway
 image:
   repository: pravega-grpc-gateway
   tag: 0.6.0
-
 pravega:
   controller: "tcp://nautilus-pravega-controller.nautilus-pravega.svc.cluster.local:9090"
-
-app: pravega-grpc-gateway
+serviceType: LoadBalancer

@@ -30,6 +30,10 @@ spec:
           env:
             - name: PRAVEGA_CONTROLLER
               value: "{{ .Values.pravega.controller }}"
+            - name: pravega_client_auth_method
+              value: Bearer
+            - name: pravega_client_auth_loadDynamic
+              value: "true"
             - name: JAVA_OPTS
               value: "-XshowSettings:vm -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -XX:MaxRAMFraction=1"
           resources:
