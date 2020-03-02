@@ -7,6 +7,7 @@ service PravegaGateway {
   rpc CreateScope(CreateScopeRequest) returns (CreateScopeResponse) {}
   rpc CreateStream(CreateStreamRequest) returns (CreateStreamResponse) {}
   rpc UpdateStream(UpdateStreamRequest) returns (UpdateStreamResponse) {}
+  rpc DeleteStream(DeleteStreamRequest) returns (DeleteStreamResponse) {}
 
   /*
   Read events from a stream. This will create a new reader group with exactly one reader.
@@ -14,6 +15,11 @@ service PravegaGateway {
   Multiple events are returned as a GRPC stream.
   */
   rpc ReadEvents(ReadEventsRequest) returns (stream ReadEventsResponse) {}
+
+  /*
+  Fetch a single events from a stream.
+  */
+  rpc FetchEvent(FetchEventRequest) returns (FetchEventResponse) {}
 
   /*
   Write events to a stream. This supports transactional and non-transactional writes.
@@ -78,6 +84,14 @@ message UpdateStreamResponse {
   bool updated = 1;
 }
 
+message DeleteStreamRequest {
+  string scope = 1;
+  string stream = 2;
+}
+
+message DeleteStreamResponse {
+}
+
 message ReadEventsRequest {
   string scope = 1;
   string stream = 2;
@@ -120,6 +134,16 @@ message StreamCut {
   string description = 2;
   // For debug use only
   map<int64, int64> cut = 3;
+}
+
+message FetchEventRequest {
+  string scope = 1;
+  string stream = 2;
+  EventPointer event_pointer = 3;
+}
+
+message FetchEventResponse {
+  bytes event = 1;
 }
 
 message WriteEventsRequest {

@@ -11,6 +11,7 @@ import io.pravega.client.admin.ReaderGroupManager;
 import io.pravega.client.admin.StreamInfo;
 import io.pravega.client.admin.StreamManager;
 import io.pravega.client.batch.SegmentIterator;
+import io.pravega.client.segment.impl.NoSuchEventException;
 import io.pravega.client.segment.impl.Segment;
 import io.pravega.client.stream.*;
 import io.pravega.client.stream.impl.ByteBufferSerializer;
@@ -62,6 +63,16 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
                     .build();
             boolean updated = streamManager.updateStream(req.getScope(), req.getStream(), streamConfig);
             responseObserver.onNext(UpdateStreamResponse.newBuilder().setUpdated(updated).build());
+            responseObserver.onCompleted();
+        }
+    }
+
+    @Override
+    public void deleteStream(DeleteStreamRequest req, StreamObserver<DeleteStreamResponse> responseObserver) {
+        try (StreamManager streamManager = StreamManager.create(clientConfig)) {
+            streamManager.sealStream(req.getScope(), req.getStream());
+            streamManager.deleteStream(req.getScope(), req.getStream());
+            responseObserver.onNext(DeleteStreamResponse.newBuilder().build());
             responseObserver.onCompleted();
         }
     }
@@ -148,6 +159,42 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
             } finally {
                 readerGroupManager.deleteReaderGroup(readerGroup);
             }
+        }
+        responseObserver.onCompleted();
+    }
+
+    @Override
+    public void fetchEvent(FetchEventRequest req, StreamObserver<FetchEventResponse> responseObserver) {
+        final String scope = req.getScope();
+        final String streamName = req.getStream();
+        final String readerGroup = UUID.randomUUID().toString().replace("-", "");
+        final Stream stream = Stream.of(scope, streamName);
+        final io.pravega.client.stream.EventPointer eventPointer = toPravegaEventPointer(req.getEventPointer());
+        final ReaderGroupConfig readerGroupConfig = ReaderGroupConfig.builder()
+                .stream(stream)
+                .build();
+        try (ReaderGroupManager readerGroupManager = ReaderGroupManager.withScope(scope, clientConfig)) {
+            readerGroupManager.createReaderGroup(readerGroup, readerGroupConfig);
+            try {
+                final String readerId = UUID.randomUUID().toString();
+                try (EventStreamClientFactory clientFactory = EventStreamClientFactory.withScope(scope, clientConfig);
+                     EventStreamReader<ByteBuffer> reader = clientFactory.createReader(
+                             readerId,
+                             readerGroup,
+                             new ByteBufferSerializer(),
+                             ReaderConfig.builder().build())) {
+                    final ByteBuffer event = reader.fetchEvent(eventPointer);
+                    final FetchEventResponse response = FetchEventResponse.newBuilder()
+                            .setEvent(ByteString.copyFrom(event))
+                            .build();
+                    logger.fine("fetchEvent: response=" + response.toString());
+                    responseObserver.onNext(response);
+                }
+            } finally {
+                readerGroupManager.deleteReaderGroup(readerGroup);
+            }
+        } catch (NoSuchEventException e) {
+            throw new RuntimeException(e);
         }
         responseObserver.onCompleted();
     }
@@ -334,6 +381,11 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
         } else {
             return io.pravega.client.stream.StreamCut.from(grpcStreamCut.getText());
         }
+    }
+
+    private io.pravega.client.stream.EventPointer toPravegaEventPointer(io.pravega.example.gateway.grpc.EventPointer grpcEventPointer) {
+        return io.pravega.client.stream.EventPointer.fromBytes(
+                ByteBuffer.wrap(grpcEventPointer.getBytes().toByteArray()));
     }
 
     private io.pravega.example.gateway.grpc.StreamCut toGrpcStreamCut(io.pravega.client.stream.StreamCut streamCut) {

@@ -29,10 +29,20 @@ class PravegaGatewayStub(object):
         request_serializer=pravega_dot_pravega__pb2.UpdateStreamRequest.SerializeToString,
         response_deserializer=pravega_dot_pravega__pb2.UpdateStreamResponse.FromString,
         )
+    self.DeleteStream = channel.unary_unary(
+        '/PravegaGateway/DeleteStream',
+        request_serializer=pravega_dot_pravega__pb2.DeleteStreamRequest.SerializeToString,
+        response_deserializer=pravega_dot_pravega__pb2.DeleteStreamResponse.FromString,
+        )
     self.ReadEvents = channel.unary_stream(
         '/PravegaGateway/ReadEvents',
         request_serializer=pravega_dot_pravega__pb2.ReadEventsRequest.SerializeToString,
         response_deserializer=pravega_dot_pravega__pb2.ReadEventsResponse.FromString,
+        )
+    self.FetchEvent = channel.unary_unary(
+        '/PravegaGateway/FetchEvent',
+        request_serializer=pravega_dot_pravega__pb2.FetchEventRequest.SerializeToString,
+        response_deserializer=pravega_dot_pravega__pb2.FetchEventResponse.FromString,
         )
     self.WriteEvents = channel.stream_unary(
         '/PravegaGateway/WriteEvents',
@@ -76,11 +86,26 @@ class PravegaGatewayServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def DeleteStream(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
   def ReadEvents(self, request, context):
     """
     Read events from a stream. This will create a new reader group with exactly one reader.
     From and to stream cuts can be provided for a bounded read.
     Multiple events are returned as a GRPC stream.
+    """
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def FetchEvent(self, request, context):
+    """
+    Fetch a single events from a stream.
     """
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
@@ -127,10 +152,20 @@ def add_PravegaGatewayServicer_to_server(servicer, server):
           request_deserializer=pravega_dot_pravega__pb2.UpdateStreamRequest.FromString,
           response_serializer=pravega_dot_pravega__pb2.UpdateStreamResponse.SerializeToString,
       ),
+      'DeleteStream': grpc.unary_unary_rpc_method_handler(
+          servicer.DeleteStream,
+          request_deserializer=pravega_dot_pravega__pb2.DeleteStreamRequest.FromString,
+          response_serializer=pravega_dot_pravega__pb2.DeleteStreamResponse.SerializeToString,
+      ),
       'ReadEvents': grpc.unary_stream_rpc_method_handler(
           servicer.ReadEvents,
           request_deserializer=pravega_dot_pravega__pb2.ReadEventsRequest.FromString,
           response_serializer=pravega_dot_pravega__pb2.ReadEventsResponse.SerializeToString,
+      ),
+      'FetchEvent': grpc.unary_unary_rpc_method_handler(
+          servicer.FetchEvent,
+          request_deserializer=pravega_dot_pravega__pb2.FetchEventRequest.FromString,
+          response_serializer=pravega_dot_pravega__pb2.FetchEventResponse.SerializeToString,
       ),
       'WriteEvents': grpc.stream_unary_rpc_method_handler(
           servicer.WriteEvents,
