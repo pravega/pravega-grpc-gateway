@@ -4,9 +4,10 @@ import logging
 import datetime
 import time
 import grpc
-import pravega
 import random
 import argparse
+
+import pravega.grpc_gateway as pravega
 
 
 def events_to_write_generator(args):
@@ -35,6 +36,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--gateway', default='localhost:54672')
     parser.add_argument('--min_num_segments', default=3)
+    parser.add_argument('--no_create_scope', dest='create_scope', action='store_false')
     parser.add_argument('--scope', default='examples')
     parser.add_argument('--stream', default='stream2')
     parser.add_argument('--use_transaction', action='store_true')
@@ -44,10 +46,11 @@ def main():
     with grpc.insecure_channel(args.gateway) as pravega_channel:
         pravega_client = pravega.grpc.PravegaGatewayStub(pravega_channel)
 
-        request = pravega.pb.CreateScopeRequest(scope=args.scope)
-        logging.info('CreateScope request=%s' % request)
-        response = pravega_client.CreateScope(request)
-        logging.info('CreateScope response=%s' % response)
+        if args.create_scope:
+            request = pravega.pb.CreateScopeRequest(scope=args.scope)
+            logging.info('CreateScope request=%s' % request)
+            response = pravega_client.CreateScope(request)
+            logging.info('CreateScope response=%s' % response)
 
         request = pravega.pb.CreateStreamRequest(
             scope=args.scope,

@@ -2,10 +2,11 @@
 
 import logging
 import grpc
-import pravega
 import base64
 import gzip
 import argparse
+
+import pravega.grpc_gateway as pravega
 
 
 def decode_stream_cut_text(text):

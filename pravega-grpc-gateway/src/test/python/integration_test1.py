@@ -1,15 +1,14 @@
 #!/usr/bin/env python
 
-import logging
-import grpc
-import pravega
-import base64
-import gzip
 import argparse
-import uuid
 import datetime
+import grpc
 import itertools
+import logging
 import time
+import uuid
+
+import pravega.grpc_gateway as pravega
 
 
 def ignore_non_events(read_events):
