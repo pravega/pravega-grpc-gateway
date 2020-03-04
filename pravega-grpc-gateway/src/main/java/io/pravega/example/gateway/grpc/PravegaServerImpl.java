@@ -67,6 +67,7 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
 
     @Override
     public void createScope(CreateScopeRequest req, StreamObserver<CreateScopeResponse> responseObserver) {
+        log.info("createScope: req={}", req);
         try (StreamManager streamManager = StreamManager.create(clientConfig)) {
             boolean created = streamManager.createScope(req.getScope());
             responseObserver.onNext(CreateScopeResponse.newBuilder().setCreated(created).build());
@@ -78,6 +79,7 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
 
     @Override
     public void createStream(CreateStreamRequest req, StreamObserver<CreateStreamResponse> responseObserver) {
+        log.info("createStream: req={}", req);
         try (StreamManager streamManager = StreamManager.create(clientConfig)) {
             StreamConfiguration streamConfig = StreamConfiguration.builder()
                     .scalingPolicy(toPravegaScalingPolicy(req.getScalingPolicy()))
@@ -93,6 +95,7 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
 
     @Override
     public void updateStream(UpdateStreamRequest req, StreamObserver<UpdateStreamResponse> responseObserver) {
+        log.info("updateStream: req={}", req);
         try (StreamManager streamManager = StreamManager.create(clientConfig)) {
             StreamConfiguration streamConfig = StreamConfiguration.builder()
                     .scalingPolicy(toPravegaScalingPolicy(req.getScalingPolicy()))
@@ -108,6 +111,7 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
 
     @Override
     public void deleteStream(DeleteStreamRequest req, StreamObserver<DeleteStreamResponse> responseObserver) {
+        log.info("deleteStream: req={}", req);
         try (StreamManager streamManager = StreamManager.create(clientConfig)) {
             streamManager.sealStream(req.getScope(), req.getStream());
             streamManager.deleteStream(req.getScope(), req.getStream());
@@ -120,12 +124,14 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
 
     @Override
     public void readEvents(ReadEventsRequest req, StreamObserver<ReadEventsResponse> responseObserver) {
+        log.info("readEvents: req={}", req);
         try {
             final String scope = req.getScope();
             final String streamName = req.getStream();
             final io.pravega.client.stream.StreamCut fromStreamCut = toPravegaStreamCut(req.getFromStreamCut());
             final io.pravega.client.stream.StreamCut toStreamCut = toPravegaStreamCut(req.getToStreamCut());
             final boolean haveEndStreamCut = (toStreamCut != io.pravega.client.stream.StreamCut.UNBOUNDED);
+            log.info("readEvents: haveEndStreamCut={}", haveEndStreamCut);
             final long timeoutMs = req.getTimeoutMs() == 0 ? DEFAULT_TIMEOUT_MS : req.getTimeoutMs();
 
             final String readerGroup = UUID.randomUUID().toString().replace("-", "");
@@ -186,7 +192,7 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
                                 }
 
                                 if (Context.current().isCancelled()) {
-                                    log.warn("context cancelled");
+                                    log.warn("readEvents: context cancelled");
                                     responseObserver.onError(Status.CANCELLED.asRuntimeException());
                                     return;
                                 }
@@ -205,6 +211,8 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
             }
         } catch (Exception e) {
             responseObserver.onError(e);
+        } finally {
+            log.info("readEvents: END");
         }
     }
 
@@ -214,6 +222,7 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
      */
     @Override
     public void fetchEvent(FetchEventRequest req, StreamObserver<FetchEventResponse> responseObserver) {
+        log.info("fetchEvent: req={}", req);
         try {
             final String scope = req.getScope();
             final String streamName = req.getStream();
@@ -234,6 +243,7 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
 
     @Override
     public StreamObserver<WriteEventsRequest> writeEvents(StreamObserver<WriteEventsResponse> responseObserver) {
+        log.info("writeEvents: BEGIN");
         return new StreamObserver<WriteEventsRequest>() {
             EventStreamClientFactory clientFactory;
             AbstractEventWriter<ByteBuffer> writer;
@@ -345,7 +355,7 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
                 }
                 WriteEventsResponse response = WriteEventsResponse.newBuilder()
                         .build();
-                log.trace("writeEvents: response={}", response);
+                log.info("writeEvents: response={}", response);
                 responseObserver.onNext(response);
                 responseObserver.onCompleted();
             }
@@ -354,6 +364,7 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
 
     @Override
     public void getStreamInfo(GetStreamInfoRequest req, StreamObserver<GetStreamInfoResponse> responseObserver) {
+        log.info("getStreamInfo: req={}", req);
         try (StreamManager streamManager = StreamManager.create(clientConfig)) {
             final StreamInfo streamInfo = streamManager.getStreamInfo(req.getScope(), req.getStream());
             final GetStreamInfoResponse response = GetStreamInfoResponse.newBuilder()
@@ -369,6 +380,7 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
 
     @Override
     public void batchReadEvents(BatchReadEventsRequest req, StreamObserver<BatchReadEventsResponse> responseObserver) {
+        log.info("batchReadEvents: req={}", req);
         try {
             final String scope = req.getScope();
             final String streamName = req.getStream();
@@ -387,6 +399,12 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
                                         .setSegmentId(segmentRange.getSegmentId())
                                         .setOffset(offset).build();
                                 responseObserver.onNext(response);
+
+                                if (Context.current().isCancelled()) {
+                                    log.warn("batchReadEvents: context cancelled");
+                                    responseObserver.onError(Status.CANCELLED.asRuntimeException());
+                                    return;
+                                }
                             }
                         }
                 );
@@ -395,6 +413,8 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
             responseObserver.onCompleted();
         } catch (Exception e) {
             responseObserver.onError(e);
+        } finally {
+            log.info("batchReadEvents: END");
         }
     }
 
