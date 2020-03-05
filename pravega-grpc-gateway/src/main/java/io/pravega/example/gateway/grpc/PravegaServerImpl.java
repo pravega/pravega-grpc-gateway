@@ -15,17 +15,17 @@ import io.pravega.client.admin.ReaderGroupManager;
 import io.pravega.client.admin.StreamInfo;
 import io.pravega.client.admin.StreamManager;
 import io.pravega.client.batch.SegmentIterator;
-import io.pravega.client.segment.impl.NoSuchEventException;
 import io.pravega.client.segment.impl.Segment;
 import io.pravega.client.stream.*;
 import io.pravega.client.stream.impl.ByteBufferSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -73,7 +73,7 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
             responseObserver.onNext(CreateScopeResponse.newBuilder().setCreated(created).build());
             responseObserver.onCompleted();
         } catch (Exception e) {
-            responseObserver.onError(e);
+            responseObserver.onError(describeAndLogException(e));
         }
     }
 
@@ -89,7 +89,7 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
             responseObserver.onNext(CreateStreamResponse.newBuilder().setCreated(created).build());
             responseObserver.onCompleted();
         } catch (Exception e) {
-            responseObserver.onError(e);
+            responseObserver.onError(describeAndLogException(e));
         }
     }
 
@@ -105,7 +105,7 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
             responseObserver.onNext(UpdateStreamResponse.newBuilder().setUpdated(updated).build());
             responseObserver.onCompleted();
         } catch (Exception e) {
-            responseObserver.onError(e);
+            responseObserver.onError(describeAndLogException(e));
         }
     }
 
@@ -118,7 +118,7 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
             responseObserver.onNext(DeleteStreamResponse.newBuilder().build());
             responseObserver.onCompleted();
         } catch (Exception e) {
-            responseObserver.onError(e);
+            responseObserver.onError(describeAndLogException(e));
         }
     }
 
@@ -197,9 +197,7 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
                                     return;
                                 }
                             } catch (ReinitializationRequiredException e) {
-                                // There are certain circumstances where the reader needs to be reinitialized
-                                log.error("Error reading next event", e);
-                                responseObserver.onError(e);
+                                responseObserver.onError(describeAndLogException(e));
                                 return;
                             }
                         }
@@ -237,7 +235,7 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
             responseObserver.onNext(response);
             responseObserver.onCompleted();
         } catch (Exception e) {
-            responseObserver.onError(e);
+            responseObserver.onError(describeAndLogException(e));
         }
     }
 
@@ -255,7 +253,7 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
             @Override
             public void onNext(WriteEventsRequest req) {
                 try {
-                    log.trace("writeEvents: req={}", req);
+                    log.trace("writeEvents: onNext: req={}", req);
                     if (writer == null) {
                         scope = req.getScope();
                         streamName = req.getStream();
@@ -280,49 +278,33 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
                         // Stream-wide parameters in 2nd and subsequent requests can be the same
                         // as the first request or can be the GRPC default (empty string and 0).
                         if (!(req.getScope().isEmpty() || req.getScope().equals(scope))) {
-                            responseObserver.onError(
-                                    Status.INVALID_ARGUMENT
-                                            .withDescription(String.format(
-                                                    "Scope must be the same for all events; received=%s, expected=%s",
-                                                    req.getScope(), scope))
-                                            .asRuntimeException());
-                            return;
+                            throw new IllegalArgumentException(String.format(
+                                    "Scope must be the same for all events; received=%s, expected=%s",
+                                    req.getScope(), scope));
                         }
                         if (!(req.getStream().isEmpty() || req.getStream().equals(streamName))) {
-                            responseObserver.onError(
-                                    Status.INVALID_ARGUMENT
-                                            .withDescription(String.format(
-                                                    "Stream must be the same for all events; received=%s, expected=%s",
-                                                    req.getStream(), streamName))
-                                            .asRuntimeException());
-                            return;
+                            throw new IllegalArgumentException(String.format(
+                                    "Stream must be the same for all events; received=%s, expected=%s",
+                                    req.getStream(), streamName));
                         }
                         if (!(req.getUseTransaction() == false || req.getUseTransaction() == useTransaction)) {
-                            responseObserver.onError(Status.INVALID_ARGUMENT
-                                    .withDescription(String.format(
-                                            "UseTransaction must be the same for all events; received=%d, expected=%d",
-                                            req.getUseTransaction(), useTransaction))
-                                    .asRuntimeException());
-                            return;
+                            throw new IllegalArgumentException(String.format(
+                                    "UseTransaction must be the same for all events; received=%d, expected=%d",
+                                    req.getUseTransaction(), useTransaction));
                         }
                     }
-                    try {
-                        writer.writeEvent(req.getRoutingKey(), req.getEvent().asReadOnlyByteBuffer());
-                        if (req.getCommit()) {
-                            writer.commit();
-                        }
-                    } catch (TxnFailedException e) {
-                        responseObserver.onError(Status.ABORTED.asRuntimeException());
-                        return;
+                    writer.writeEvent(req.getRoutingKey(), req.getEvent().asReadOnlyByteBuffer());
+                    if (req.getCommit()) {
+                        writer.commit();
                     }
                 } catch (Exception e) {
-                    responseObserver.onError(e);
+                    responseObserver.onError(describeAndLogException(e));
                 }
             }
 
             @Override
             public void onError(Throwable t) {
-                log.error("Encountered error in writeEvents", t);
+                log.error("writeEvent: onError", t);
                 if (writer != null) {
                     try {
                         writer.close();
@@ -355,7 +337,7 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
                 }
                 WriteEventsResponse response = WriteEventsResponse.newBuilder()
                         .build();
-                log.info("writeEvents: response={}", response);
+                log.info("writeEvents: onCompleted: response={}", response);
                 responseObserver.onNext(response);
                 responseObserver.onCompleted();
             }
@@ -374,7 +356,7 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
             responseObserver.onNext(response);
             responseObserver.onCompleted();
         } catch (Exception e) {
-            responseObserver.onError(e);
+            responseObserver.onError(describeAndLogException(e));
         }
     }
 
@@ -412,7 +394,7 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
 
             responseObserver.onCompleted();
         } catch (Exception e) {
-            responseObserver.onError(e);
+            responseObserver.onError(describeAndLogException(e));
         } finally {
             log.info("batchReadEvents: END");
         }
@@ -472,7 +454,7 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
                 final EventStreamClientFactory clientFactory = EventStreamClientFactory.withScope(stream.getScope(), clientConfig);
                 try {
                     final String readerId = UUID.randomUUID().toString();
-                    EventStreamReader<ByteBuffer> reader = clientFactory.createReader(
+                    final EventStreamReader<ByteBuffer> reader = clientFactory.createReader(
                             readerId,
                             readerGroup,
                             new ByteBufferSerializer(),
@@ -491,5 +473,25 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
             readerGroupManager.close();
             throw e;
         }
+    }
+
+    private Throwable describeAndLogException(Throwable t) {
+        final Status status;
+        if (t instanceof IllegalArgumentException) {
+            status = Status.INVALID_ARGUMENT;
+        } else if (t instanceof TxnFailedException) {
+            status = Status.ABORTED;
+        } else {
+            status = Status.UNKNOWN;
+        }
+        final StringWriter stringWriter = new StringWriter();
+        final PrintWriter printWriter = new PrintWriter(stringWriter);
+        t.printStackTrace(printWriter);
+        Throwable described = status
+                .withDescription(stringWriter.toString())
+                .withCause(t)
+                .asRuntimeException();
+        log.error("Reporting the following exception to the client", described);
+        return described;
     }
 }
