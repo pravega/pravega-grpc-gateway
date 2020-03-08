@@ -113,7 +113,11 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
     public void deleteStream(DeleteStreamRequest req, StreamObserver<DeleteStreamResponse> responseObserver) {
         log.info("deleteStream: req={}", req);
         try (StreamManager streamManager = StreamManager.create(clientConfig)) {
-            streamManager.sealStream(req.getScope(), req.getStream());
+            try {
+                streamManager.sealStream(req.getScope(), req.getStream());
+            } catch (InvalidStreamException e) {
+                // Ignore this exception
+            }
             streamManager.deleteStream(req.getScope(), req.getStream());
             responseObserver.onNext(DeleteStreamResponse.newBuilder().build());
             responseObserver.onCompleted();

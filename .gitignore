@@ -8,4 +8,4 @@
 out/
 pravega-grpc-gateway/build
 pravega-grpc-gateway/env
-pravega-grpc-gateway/src/main/python/pravega.egg-info
+pravega-grpc-gateway/src/main/python/pravega_grpc_gateway_client.egg-info
