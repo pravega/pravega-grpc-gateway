@@ -127,8 +127,10 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
     }
 
     @Override
-    public void readEvents(ReadEventsRequest req, StreamObserver<ReadEventsResponse> responseObserver) {
+    public void readEvents(ReadEventsRequest req, StreamObserver<ReadEventsResponse> originalResponseObserver) {
         log.info("readEvents: req={}", req);
+        StreamObserverWithFlowControl<ReadEventsResponse> responseObserver =
+                new StreamObserverWithFlowControl<>(originalResponseObserver);
         try {
             final String scope = req.getScope();
             final String streamName = req.getStream();
@@ -155,53 +157,48 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
                                  ReaderConfig.builder().build())) {
                         final StreamCutBuilder streamCutBuilder = new StreamCutBuilder(stream, fromStreamCut);
                         for (; ; ) {
-                            try {
-                                EventRead<ByteBuffer> event = reader.readNextEvent(timeoutMs);
-                                if (event.isCheckpoint()) {
-                                    final ReadEventsResponse response = ReadEventsResponse.newBuilder()
-                                            .setCheckpointName(event.getCheckpointName())
-                                            .build();
-                                    log.trace("readEvents: response={}", response);
-                                    responseObserver.onNext(response);
-                                } else if (event.getEvent() != null) {
-                                    final io.pravega.client.stream.Position position = event.getPosition();
-                                    final io.pravega.client.stream.EventPointer eventPointer = event.getEventPointer();
-                                    streamCutBuilder.addEvent(position);
-                                    final io.pravega.client.stream.StreamCut streamCut = streamCutBuilder.getStreamCut();
-                                    final ReadEventsResponse response = ReadEventsResponse.newBuilder()
-                                            .setEvent(ByteString.copyFrom(event.getEvent()))
-                                            .setPosition(Position.newBuilder()
-                                                    .setBytes(ByteString.copyFrom(position.toBytes()))
-                                                    .setDescription(position.toString())
-                                                    .build())
-                                            .setEventPointer(EventPointer.newBuilder()
-                                                    .setBytes(ByteString.copyFrom(eventPointer.toBytes()))
-                                                    .setDescription(eventPointer.toString()))
-                                            .setStreamCut(io.pravega.example.gateway.grpc.StreamCut.newBuilder()
-                                                    .setText(streamCut.asText())
-                                                    .setDescription(streamCut.toString()))
-                                            .build();
-                                    log.trace("readEvents: response={}", response);
-                                    responseObserver.onNext(response);
+                            final EventRead<ByteBuffer> event = reader.readNextEvent(timeoutMs);
+                            if (event.isCheckpoint()) {
+                                final ReadEventsResponse response = ReadEventsResponse.newBuilder()
+                                        .setCheckpointName(event.getCheckpointName())
+                                        .build();
+                                log.trace("readEvents: response={}", response);
+                                responseObserver.onNext(response);
+                            } else if (event.getEvent() != null) {
+                                final io.pravega.client.stream.Position position = event.getPosition();
+                                final io.pravega.client.stream.EventPointer eventPointer = event.getEventPointer();
+                                streamCutBuilder.addEvent(position);
+                                final io.pravega.client.stream.StreamCut streamCut = streamCutBuilder.getStreamCut();
+                                final ReadEventsResponse response = ReadEventsResponse.newBuilder()
+                                        .setEvent(ByteString.copyFrom(event.getEvent()))
+                                        .setPosition(Position.newBuilder()
+                                                .setBytes(ByteString.copyFrom(position.toBytes()))
+                                                .setDescription(position.toString())
+                                                .build())
+                                        .setEventPointer(EventPointer.newBuilder()
+                                                .setBytes(ByteString.copyFrom(eventPointer.toBytes()))
+                                                .setDescription(eventPointer.toString()))
+                                        .setStreamCut(io.pravega.example.gateway.grpc.StreamCut.newBuilder()
+                                                .setText(streamCut.asText())
+                                                .setDescription(streamCut.toString()))
+                                        .build();
+                                log.trace("readEvents: response={}", response);
+                                responseObserver.onNext(response);
+                            } else {
+                                if (haveEndStreamCut) {
+                                    // If this is a bounded stream with an end stream cut, then we
+                                    // have reached the end stream cut.
+                                    log.info("readEvents: no more events, completing RPC");
+                                    break;
                                 } else {
-                                    if (haveEndStreamCut) {
-                                        // If this is a bounded stream with an end stream cut, then we
-                                        // have reached the end stream cut.
-                                        log.info("readEvents: no more events, completing RPC");
-                                        break;
-                                    } else {
-                                        // If this is an unbounded stream, all events have been read and a
-                                        // timeout has occurred.
-                                    }
+                                    // If this is an unbounded stream, all events have been read and a
+                                    // timeout has occurred.
                                 }
+                            }
 
-                                if (Context.current().isCancelled()) {
-                                    log.warn("readEvents: context cancelled");
-                                    responseObserver.onError(Status.CANCELLED.asRuntimeException());
-                                    return;
-                                }
-                            } catch (ReinitializationRequiredException e) {
-                                responseObserver.onError(describeAndLogException(e));
+                            if (Context.current().isCancelled()) {
+                                log.warn("readEvents: context cancelled");
+                                responseObserver.onError(Status.CANCELLED.asRuntimeException());
                                 return;
                             }
                         }
@@ -212,7 +209,7 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
                 responseObserver.onCompleted();
             }
         } catch (Exception e) {
-            responseObserver.onError(e);
+            responseObserver.onError(describeAndLogException(e));
         } finally {
             log.info("readEvents: END");
         }
@@ -365,8 +362,10 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
     }
 
     @Override
-    public void batchReadEvents(BatchReadEventsRequest req, StreamObserver<BatchReadEventsResponse> responseObserver) {
+    public void batchReadEvents(BatchReadEventsRequest req, StreamObserver<BatchReadEventsResponse> originalResponseObserver) {
         log.info("batchReadEvents: req={}", req);
+        StreamObserverWithFlowControl<BatchReadEventsResponse> responseObserver =
+                new StreamObserverWithFlowControl<>(originalResponseObserver);
         try {
             final String scope = req.getScope();
             final String streamName = req.getStream();
