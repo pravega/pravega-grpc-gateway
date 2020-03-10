@@ -52,7 +52,6 @@ scripts/deploy-k8s-components.sh
 # Using the Pravega GRPC Gateway from Python
 
 ```
-pip install grpcio
 git clone https://github.com/pravega/pravega-grpc-gateway /tmp/pravega-grpc-gateway && \
 cd /tmp/pravega-grpc-gateway && \
 pip install grpcio pravega-grpc-gateway/src/main/python
