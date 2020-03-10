@@ -49,7 +49,18 @@ scripts/build-k8s-components.sh
 scripts/deploy-k8s-components.sh
 ```
 
-# Create Python Environment
+# Using the Pravega GRPC Gateway from Python
+
+```
+pip install grpcio
+git clone https://github.com/pravega/pravega-grpc-gateway /tmp/pravega-grpc-gateway && \
+cd /tmp/pravega-grpc-gateway && \
+pip install grpcio pravega-grpc-gateway/src/main/python
+```
+
+See [integration_test1.py](pravega-grpc-gateway/src/test/python/integration_test1.py).
+
+# Create Python Environment using Conda
 
 1. Install [Miniconda Python 3.7](https://docs.conda.io/en/latest/miniconda.html).
 
