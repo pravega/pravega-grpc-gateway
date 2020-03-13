@@ -117,6 +117,7 @@ def main():
         fetch_event_sec_per_call = fetch_event_sec / len(read_events_response)
         logging.info('fetch_event_sec_per_call=%f' % fetch_event_sec_per_call)
 
+        logging.info('-------- Batch read events --------')
         batch_read_events_request = pravega.pb.BatchReadEventsRequest(
             scope=args.scope,
             stream=stream,
@@ -128,6 +129,16 @@ def main():
         logging.info('BatchReadEvents response=%s' % batch_read_events_response)
         logging.info('len(batch_read_events_response)=%d', len(batch_read_events_response))
         assert len(batch_read_events_response) == args.num_events
+
+        logging.info('-------- Truncate stream --------')
+        request = pravega.pb.TruncateStreamRequest(
+            scope=args.scope,
+            stream=stream,
+            stream_cut=stream_info.tail_stream_cut,
+        )
+        logging.info('TruncateStream request=%s' % request)
+        response = pravega_client.TruncateStream(request)
+        logging.info('TruncateStream response=%s' % response)
 
         logging.info('-------- Delete stream --------')
         request = pravega.pb.DeleteStreamRequest(

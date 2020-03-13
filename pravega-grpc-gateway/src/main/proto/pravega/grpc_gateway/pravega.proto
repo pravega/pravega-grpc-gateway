@@ -7,6 +7,7 @@ service PravegaGateway {
   rpc CreateScope(CreateScopeRequest) returns (CreateScopeResponse) {}
   rpc CreateStream(CreateStreamRequest) returns (CreateStreamResponse) {}
   rpc UpdateStream(UpdateStreamRequest) returns (UpdateStreamResponse) {}
+  rpc TruncateStream(TruncateStreamRequest) returns (TruncateStreamResponse) {}
   rpc DeleteStream(DeleteStreamRequest) returns (DeleteStreamResponse) {}
 
   /*
@@ -82,6 +83,16 @@ message UpdateStreamRequest {
 
 message UpdateStreamResponse {
   bool updated = 1;
+}
+
+message TruncateStreamRequest {
+  string scope = 1;
+  string stream = 2;
+  StreamCut stream_cut = 3;
+}
+
+message TruncateStreamResponse {
+  bool truncated = 1;
 }
 
 message DeleteStreamRequest {

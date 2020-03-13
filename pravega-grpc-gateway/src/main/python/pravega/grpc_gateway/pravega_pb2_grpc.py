@@ -29,6 +29,11 @@ class PravegaGatewayStub(object):
         request_serializer=pravega_dot_grpc__gateway_dot_pravega__pb2.UpdateStreamRequest.SerializeToString,
         response_deserializer=pravega_dot_grpc__gateway_dot_pravega__pb2.UpdateStreamResponse.FromString,
         )
+    self.TruncateStream = channel.unary_unary(
+        '/PravegaGateway/TruncateStream',
+        request_serializer=pravega_dot_grpc__gateway_dot_pravega__pb2.TruncateStreamRequest.SerializeToString,
+        response_deserializer=pravega_dot_grpc__gateway_dot_pravega__pb2.TruncateStreamResponse.FromString,
+        )
     self.DeleteStream = channel.unary_unary(
         '/PravegaGateway/DeleteStream',
         request_serializer=pravega_dot_grpc__gateway_dot_pravega__pb2.DeleteStreamRequest.SerializeToString,
@@ -80,6 +85,13 @@ class PravegaGatewayServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def UpdateStream(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def TruncateStream(self, request, context):
     # missing associated documentation comment in .proto file
     pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -151,6 +163,11 @@ def add_PravegaGatewayServicer_to_server(servicer, server):
           servicer.UpdateStream,
           request_deserializer=pravega_dot_grpc__gateway_dot_pravega__pb2.UpdateStreamRequest.FromString,
           response_serializer=pravega_dot_grpc__gateway_dot_pravega__pb2.UpdateStreamResponse.SerializeToString,
+      ),
+      'TruncateStream': grpc.unary_unary_rpc_method_handler(
+          servicer.TruncateStream,
+          request_deserializer=pravega_dot_grpc__gateway_dot_pravega__pb2.TruncateStreamRequest.FromString,
+          response_serializer=pravega_dot_grpc__gateway_dot_pravega__pb2.TruncateStreamResponse.SerializeToString,
       ),
       'DeleteStream': grpc.unary_unary_rpc_method_handler(
           servicer.DeleteStream,

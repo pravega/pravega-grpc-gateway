@@ -110,6 +110,19 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
     }
 
     @Override
+    public void truncateStream(TruncateStreamRequest req, StreamObserver<TruncateStreamResponse> responseObserver) {
+        log.info("truncateStream: req={}", req);
+        try (StreamManager streamManager = StreamManager.create(clientConfig)) {
+            final io.pravega.client.stream.StreamCut streamCut = toPravegaStreamCut(req.getStreamCut());
+            boolean truncated = streamManager.truncateStream(req.getScope(), req.getStream(), streamCut);
+            responseObserver.onNext(TruncateStreamResponse.newBuilder().setTruncated(truncated).build());
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            responseObserver.onError(describeAndLogException(e));
+        }
+    }
+
+    @Override
     public void deleteStream(DeleteStreamRequest req, StreamObserver<DeleteStreamResponse> responseObserver) {
         log.info("deleteStream: req={}", req);
         try (StreamManager streamManager = StreamManager.create(clientConfig)) {

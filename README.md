@@ -93,4 +93,3 @@ This will build the Python files necessary to allow a Python application to call
     ```
     ./build_python.sh
     ```
-
