@@ -9,6 +9,7 @@ service PravegaGateway {
   rpc UpdateStream(UpdateStreamRequest) returns (UpdateStreamResponse) {}
   rpc TruncateStream(TruncateStreamRequest) returns (TruncateStreamResponse) {}
   rpc DeleteStream(DeleteStreamRequest) returns (DeleteStreamResponse) {}
+  rpc ListStreams(ListStreamsRequest) returns (stream ListStreamsResponse) {}
 
   /*
   Read events from a stream. This will create a new reader group with exactly one reader.
@@ -101,6 +102,15 @@ message DeleteStreamRequest {
 }
 
 message DeleteStreamResponse {
+}
+
+message ListStreamsRequest {
+  string scope = 1;
+}
+
+message ListStreamsResponse {
+  string scope = 1;
+  string stream = 2;
 }
 
 message ReadEventsRequest {

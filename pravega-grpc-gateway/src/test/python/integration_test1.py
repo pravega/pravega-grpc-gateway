@@ -48,6 +48,16 @@ def main():
         response = pravega_client.CreateStream(request)
         logging.info('CreateStream response=%s' % response)
 
+        logging.info('-------- List streams --------')
+        list_streams_request = pravega.pb.ListStreamsRequest(
+            scope=args.scope,
+        )
+        logging.info('ListStreams request=%s', list_streams_request)
+        list_streams_response = list(pravega_client.ListStreams(list_streams_request))
+        logging.info('ListStreams response=%s', list_streams_response)
+        logging.info('len(list_streams_response)=%d', len(list_streams_response))
+        assert len(list_streams_response) > 0
+
         logging.info('-------- Update stream --------')
         request = pravega.pb.UpdateStreamRequest(
             scope=args.scope,

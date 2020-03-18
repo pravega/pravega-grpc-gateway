@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.ByteBuffer;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Executors;
@@ -133,6 +134,24 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
             }
             streamManager.deleteStream(req.getScope(), req.getStream());
             responseObserver.onNext(DeleteStreamResponse.newBuilder().build());
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            responseObserver.onError(describeAndLogException(e));
+        }
+    }
+
+    @Override
+    public void listStreams(ListStreamsRequest req, StreamObserver<ListStreamsResponse> responseObserver) {
+        log.info("listStreams: req={}", req);
+        try (StreamManager streamManager = StreamManager.create(clientConfig)) {
+            final Iterator<Stream> streams = streamManager.listStreams(req.getScope());
+            streams.forEachRemaining((Stream stream) -> {
+                final ListStreamsResponse response = ListStreamsResponse.newBuilder()
+                        .setScope(stream.getScope())
+                        .setStream(stream.getStreamName())
+                        .build();
+                responseObserver.onNext(response);
+            });
             responseObserver.onCompleted();
         } catch (Exception e) {
             responseObserver.onError(describeAndLogException(e));

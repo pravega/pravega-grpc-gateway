@@ -39,6 +39,11 @@ class PravegaGatewayStub(object):
         request_serializer=pravega_dot_grpc__gateway_dot_pravega__pb2.DeleteStreamRequest.SerializeToString,
         response_deserializer=pravega_dot_grpc__gateway_dot_pravega__pb2.DeleteStreamResponse.FromString,
         )
+    self.ListStreams = channel.unary_stream(
+        '/PravegaGateway/ListStreams',
+        request_serializer=pravega_dot_grpc__gateway_dot_pravega__pb2.ListStreamsRequest.SerializeToString,
+        response_deserializer=pravega_dot_grpc__gateway_dot_pravega__pb2.ListStreamsResponse.FromString,
+        )
     self.ReadEvents = channel.unary_stream(
         '/PravegaGateway/ReadEvents',
         request_serializer=pravega_dot_grpc__gateway_dot_pravega__pb2.ReadEventsRequest.SerializeToString,
@@ -99,6 +104,13 @@ class PravegaGatewayServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def DeleteStream(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def ListStreams(self, request, context):
     # missing associated documentation comment in .proto file
     pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -173,6 +185,11 @@ def add_PravegaGatewayServicer_to_server(servicer, server):
           servicer.DeleteStream,
           request_deserializer=pravega_dot_grpc__gateway_dot_pravega__pb2.DeleteStreamRequest.FromString,
           response_serializer=pravega_dot_grpc__gateway_dot_pravega__pb2.DeleteStreamResponse.SerializeToString,
+      ),
+      'ListStreams': grpc.unary_stream_rpc_method_handler(
+          servicer.ListStreams,
+          request_deserializer=pravega_dot_grpc__gateway_dot_pravega__pb2.ListStreamsRequest.FromString,
+          response_serializer=pravega_dot_grpc__gateway_dot_pravega__pb2.ListStreamsResponse.SerializeToString,
       ),
       'ReadEvents': grpc.unary_stream_rpc_method_handler(
           servicer.ReadEvents,
