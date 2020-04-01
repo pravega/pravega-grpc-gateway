@@ -5,7 +5,7 @@ set -ex
 : ${IMAGE_TAG?"You must export IMAGE_TAG"}
 
 ROOT_DIR=$(dirname $0)/..
-NAMESPACE=examples
+NAMESPACE=${NAMESPACE:-examples}
 
 helm upgrade --install \
 pravega-grpc-gateway \

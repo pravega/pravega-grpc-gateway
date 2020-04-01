@@ -35,11 +35,11 @@ spec:
             - name: pravega_client_auth_loadDynamic
               value: "true"
             - name: JAVA_OPTS
-              value: "-XshowSettings:vm -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -XX:MaxRAMFraction=1"
+              value: "-XshowSettings:vm -Xmx768m"
           resources:
             requests:
-              memory: "256Mi"
-              cpu: "100m"
+              memory: "1Gi"
+              cpu: "1000m"
             limits:
-              memory: "256Mi"
+              memory: "1Gi"
               cpu: "2000m"
