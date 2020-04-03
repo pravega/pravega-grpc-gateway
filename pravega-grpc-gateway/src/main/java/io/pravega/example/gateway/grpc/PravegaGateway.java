@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
+import static io.pravega.client.stream.Serializer.MAX_EVENT_SIZE;
+
 /**
  * Server that manages startup/shutdown of a {@code PravegaGateway} server.
  */
@@ -20,6 +22,7 @@ public class PravegaGateway {
         server = NettyServerBuilder.forPort(port)
                 .permitKeepAliveTime(1, TimeUnit.SECONDS)
                 .permitKeepAliveWithoutCalls(true)
+                .maxInboundMessageSize(MAX_EVENT_SIZE + 1024*1024)
                 .addService(new PravegaServerImpl())
                 .build()
                 .start();
