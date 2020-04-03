@@ -26,7 +26,7 @@ export PRAVEGA_CONTROLLER=tcp://localhost:9090
 
 ```
 export DOCKER_REPOSITORY=claudiofahey
-export IMAGE_TAG=0.6.0
+export IMAGE_TAG=0.7.0
 export PRAVEGA_CONTROLLER=tcp://localhost:9090
 scripts/build-k8s-components.sh
 docker run -d \
@@ -44,7 +44,7 @@ place them in the ca-certificates directory.
 
 ```
 export DOCKER_REPOSITORY=<hostname>:<port>/<namespace>
-export IMAGE_TAG=0.6.0
+export IMAGE_TAG=0.7.0
 scripts/build-k8s-components.sh
 scripts/deploy-k8s-components.sh
 ```

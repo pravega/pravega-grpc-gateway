@@ -1,4 +1,7 @@
 #! /bin/bash
 set -x
 
-helm delete --purge pravega-grpc-gateway
+NAMESPACE=${NAMESPACE:-examples}
+
+helm delete pravega-grpc-gateway \
+--namespace ${NAMESPACE}
