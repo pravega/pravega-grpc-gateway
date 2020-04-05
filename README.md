@@ -27,7 +27,7 @@ export PRAVEGA_CONTROLLER=tcp://localhost:9090
 ```
 export DOCKER_REPOSITORY=claudiofahey
 export IMAGE_TAG=0.7.0
-export PRAVEGA_CONTROLLER=tcp://localhost:9090
+export PRAVEGA_CONTROLLER=tcp://${HOST_IP}:9090
 scripts/build-k8s-components.sh
 docker run -d \
   --restart always \

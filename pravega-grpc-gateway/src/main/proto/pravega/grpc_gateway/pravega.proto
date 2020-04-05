@@ -127,8 +127,6 @@ message ReadEventsResponse {
   Position position = 2;
   // A pointer to this event.
   EventPointer event_pointer = 3;
-  // Empty string if this is not a checkpoint.
-  string checkpoint_name = 4;
   // Experimental use only: Identifies the event(s) immediately following this one.
   StreamCut stream_cut = 5;
 }

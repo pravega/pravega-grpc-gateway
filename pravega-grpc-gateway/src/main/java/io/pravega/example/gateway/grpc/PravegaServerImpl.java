@@ -191,11 +191,8 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
                         for (; ; ) {
                             final EventRead<ByteBuffer> event = reader.readNextEvent(timeoutMs);
                             if (event.isCheckpoint()) {
-                                final ReadEventsResponse response = ReadEventsResponse.newBuilder()
-                                        .setCheckpointName(event.getCheckpointName())
-                                        .build();
-                                log.trace("readEvents: response={}", response);
-                                responseObserver.onNext(response);
+                                // Since the event is processed by the GRPC client asynchronously, there is no point in passing the checkpoint.
+                                log.trace("readEvents: received checkpoint {}", event.getCheckpointName());
                             } else if (event.getEvent() != null) {
                                 final io.pravega.client.stream.Position position = event.getPosition();
                                 final io.pravega.client.stream.EventPointer eventPointer = event.getEventPointer();
