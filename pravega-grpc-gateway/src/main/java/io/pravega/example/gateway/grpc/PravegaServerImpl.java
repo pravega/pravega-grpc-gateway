@@ -198,12 +198,19 @@ class PravegaServerImpl extends PravegaGatewayGrpc.PravegaGatewayImplBase {
                                 final io.pravega.client.stream.EventPointer eventPointer = event.getEventPointer();
                                 streamCutBuilder.addEvent(position);
                                 final io.pravega.client.stream.StreamCut streamCut = streamCutBuilder.getStreamCut();
+
+                                // Work around for https://github.com/pravega/pravega/issues/4669
+                                Position.Builder positionBuilder = Position.newBuilder();
+                                try {
+                                    positionBuilder = positionBuilder.setBytes(ByteString.copyFrom(position.toBytes()));
+                                } catch (IllegalArgumentException e) {
+                                    log.warn("readEvents: Exception getting position bytes", e);
+                                }
+                                positionBuilder = positionBuilder.setDescription(position.toString());
+
                                 final ReadEventsResponse response = ReadEventsResponse.newBuilder()
                                         .setEvent(ByteString.copyFrom(event.getEvent()))
-                                        .setPosition(Position.newBuilder()
-                                                .setBytes(ByteString.copyFrom(position.toBytes()))
-                                                .setDescription(position.toString())
-                                                .build())
+                                        .setPosition(positionBuilder.build())
                                         .setEventPointer(EventPointer.newBuilder()
                                                 .setBytes(ByteString.copyFrom(eventPointer.toBytes()))
                                                 .setDescription(eventPointer.toString()))
