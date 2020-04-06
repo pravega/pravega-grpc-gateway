@@ -39,12 +39,16 @@ docker run -d \
 
 # Run Gateway in Dell EMC Streaming Data Platform (SDP)
 
-If your network requires non-standard TLS certificates to be trusted during the build process, 
-place them in the ca-certificates directory.
+1. Edit the file charts/pravega-grpc-gateway/values.yaml as needed.
+   You will need to set `pravega.controller` and `service.annotations.external-dns.alpha.kubernetes.io/hostname`
+   to match your environment.
+
+2. Build and then deploy using Helm.
 
 ```
-export DOCKER_REPOSITORY=<hostname>:<port>/<namespace>
+export DOCKER_REPOSITORY=claudiofahey
 export IMAGE_TAG=0.7.0
+export NAMESPACE=examples
 scripts/build-k8s-components.sh
 scripts/deploy-k8s-components.sh
 ```

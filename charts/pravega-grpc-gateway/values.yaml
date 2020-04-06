@@ -1,7 +1,13 @@
 app: pravega-grpc-gateway
 image:
   repository: pravega-grpc-gateway
-  tag: 0.6.0
+  tag: 0.7.0
 pravega:
+  # Use below for SDP without TLS.
   controller: "tcp://nautilus-pravega-controller.nautilus-pravega.svc.cluster.local:9090"
-serviceType: LoadBalancer
+  # Use below format for SDP with TLS.
+  #controller: "tls://pravega-controller.cluster1.example.com:443"
+service:
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: "pravega-grpc-gateway.examples.frightful-four.eaglemonk.intranet.nautilus-platform-dev.com"
+  type: LoadBalancer
