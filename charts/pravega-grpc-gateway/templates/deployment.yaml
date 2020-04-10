@@ -38,8 +38,8 @@ spec:
               value: "-XshowSettings:vm -Xmx768m"
           resources:
             requests:
-              memory: "1Gi"
+              memory: "1536Mi"
               cpu: "1000m"
             limits:
-              memory: "1Gi"
+              memory: "1536Mi"
               cpu: "2000m"
