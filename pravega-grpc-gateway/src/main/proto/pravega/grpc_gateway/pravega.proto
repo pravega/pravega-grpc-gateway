@@ -166,7 +166,7 @@ message FetchEventResponse {
 }
 
 message WriteEventsRequest {
-  // The event to write. Events must be 1 MiB or less.
+  // The event to write. Events must be 8 MiB or less.
   bytes event = 1;
   // Optional.
   string routing_key = 2;
