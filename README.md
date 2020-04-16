@@ -20,7 +20,7 @@ Using a GRPC gateway is better than a REST gateway for the following reasons:
 ## Example Usage with Python
 
 Initialize:
-```
+```python
 import grpc
 import pravega.grpc_gateway as pravega
 gateway = 'pravega-grpc-gateway.example.com:80'
@@ -31,7 +31,7 @@ pravega_client = pravega.grpc.PravegaGatewayStub(pravega_channel)
 ```
 
 Read events from a stream:
-```
+```python
 read_events_request = pravega.pb.ReadEventsRequest(
     scope='examples',
     stream='my-stream',
@@ -40,11 +40,10 @@ read_events_request = pravega.pb.ReadEventsRequest(
 )
 for event in pravega_client.ReadEvents(read_events_request):
     print(event.event.args.decode('UTF-8')
-
 ```
 
 Write events to a stream:
-```
+```python
 events_to_write = (pravega.pb.WriteEventsRequest(
         scope='examples',
         stream='my-stream',
