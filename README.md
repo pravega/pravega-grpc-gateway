@@ -55,7 +55,7 @@ pravega_client.WriteEvents(events_to_write)
 
 See [integration_test1.py](pravega-grpc-gateway/src/test/python/integration_test1.py) for more examples.
 
-See [pravega.proto](pravega/grpc_gateway/pravega.proto) for all available RPCs.
+See [pravega.proto](pravega-grpc-gateway/src/main/proto/pravega/grpc_gateway/pravega.proto) for all available RPCs.
 
 # Run Gateway Locally
 
