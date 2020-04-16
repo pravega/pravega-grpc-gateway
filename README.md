@@ -15,6 +15,49 @@ Using a GRPC gateway is better than a REST gateway for the following reasons:
   
 - GRPC stubs (client code) can be easily created for nearly any language and environment.
 
+# Example Usage
+
+## Example Usage with Python
+
+Initialize:
+```
+import grpc
+import pravega.grpc_gateway as pravega
+gateway = 'pravega-grpc-gateway.example.com:80'
+pravega_channel = grpc.insecure_channel(gateway, options=[
+        ('grpc.max_receive_message_length', 9*1024*1024),
+    ])
+pravega_client = pravega.grpc.PravegaGatewayStub(pravega_channel)
+```
+
+Read events from a stream:
+```
+read_events_request = pravega.pb.ReadEventsRequest(
+    scope='examples',
+    stream='my-stream',
+    from_stream_cut=None,
+    to_stream_cut=None,
+)
+for event in pravega_client.ReadEvents(read_events_request):
+    print(event.event.args.decode('UTF-8')
+
+```
+
+Write events to a stream:
+```
+events_to_write = (pravega.pb.WriteEventsRequest(
+        scope='examples',
+        stream='my-stream',
+        event=('%d,%s' % (i, datetime.datetime.now())).encode('UTF-8'),
+        routing_key='0',
+    ) for i in range(10))
+pravega_client.WriteEvents(events_to_write)
+```
+
+See [integration_test1.py](pravega-grpc-gateway/src/test/python/integration_test1.py) for more examples.
+
+See [pravega.proto](pravega/grpc_gateway/pravega.proto) for all available RPCs.
+
 # Run Gateway Locally
 
 ```
