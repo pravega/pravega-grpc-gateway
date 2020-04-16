@@ -5,7 +5,7 @@ metadata:
   annotations:
     {{- .Values.service.annotations | toYaml | trimSuffix "\n" | nindent 4 }}
   {{- end }}
-  name: pravega-grpc-gateway
+  name: {{ .Release.Name }}
 spec:
   ports:
   - port: 80
