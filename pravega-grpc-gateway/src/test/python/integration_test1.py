@@ -11,12 +11,6 @@ import uuid
 import pravega.grpc_gateway as pravega
 
 
-def ignore_non_events(read_events):
-    for read_event in read_events:
-        if len(read_event.event) > 0:
-            yield read_event
-
-
 def main():
     logging.basicConfig(level=logging.DEBUG)
     parser = argparse.ArgumentParser()
@@ -27,7 +21,7 @@ def main():
     args = parser.parse_args()
     logging.info('args=%s' % str(args))
 
-    with grpc.insecure_channel(args.gateway) as pravega_channel:
+    with grpc.insecure_channel(args.gateway, options=[('grpc.max_receive_message_length', 9*1024*1024)]) as pravega_channel:
         pravega_client = pravega.grpc.PravegaGatewayStub(pravega_channel)
 
         if args.create_scope:
@@ -91,7 +85,7 @@ def main():
         logging.info('ReadEvents request=%s', read_events_request)
         read_events_response = list(
             itertools.islice(
-                ignore_non_events(pravega_client.ReadEvents(read_events_request)),
+                pravega_client.ReadEvents(read_events_request),
                 args.num_events))
         logging.info('ReadEvents response=%s', read_events_response)
         logging.info('len(read_events_response)=%d', len(read_events_response))
@@ -106,7 +100,7 @@ def main():
         )
         logging.info('ReadEvents request=%s', read_events_request)
         read_events_response = list(
-            ignore_non_events(pravega_client.ReadEvents(read_events_request)))
+            pravega_client.ReadEvents(read_events_request))
         logging.info('ReadEvents response=%s', read_events_response)
         logging.info('len(read_events_response)=%d', len(read_events_response))
         assert len(read_events_response) == args.num_events
