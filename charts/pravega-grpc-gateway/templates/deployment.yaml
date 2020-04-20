@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: pravega-grpc-gateway
+  name: {{ .Release.Name }}
   labels:
     app: {{ .Values.app }}
     component: pravega-grpc-gateway
