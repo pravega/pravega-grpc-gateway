@@ -60,7 +60,7 @@ Using a GRPC gateway is better than a REST gateway for the following reasons:
 
 ### Running in Dell EMC Streaming Data Platform (SDP)
 
-1. Edit the file `charts/pravega-grpc-gateway/values.yaml` as needed. You will need to set `pravega.controlle`r and `service.annotations.external-dns.alpha.kubernetes.io/hostname` to match your environment.
+1. Edit the file `charts/pravega-grpc-gateway/values.yaml` as needed. You will need to set `pravega.controller` and `service.annotations.external-dns.alpha.kubernetes.io/hostname` to match your environment.
 
 2. Build and then deploy using Helm.
 
